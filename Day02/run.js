@@ -23,23 +23,36 @@ code and data share the same memory
 
 let fs = require('fs');
 const data = fs.readFileSync('./input.txt', 'utf-8');
-let memory = data.split(/\r?\n/)[0].split(',').map(function(v){return Number(v);});
+let originalMemory = data.split(/\r?\n/)[0].split(',').map(function(v){return Number(v);});
 
-memory[1] = 12; memory[2] = 2; // hey, the value of reading ALL the instructions :D
+function intcode(inputMemory, noun, verb)
+{
+    let memory = [...inputMemory];
 
-let ip = 0;
-let halt = 0;
-while (halt === 0)
-    switch (memory[ip])
-    {
-        case  1: memory[memory[ip + 3]] = memory[memory[ip + 1]] + memory[memory[ip + 2]]; ip += 4; break;
-        case  2: memory[memory[ip + 3]] = memory[memory[ip + 1]] * memory[memory[ip + 2]]; ip += 4; break;
-        case 99: halt = 1; break;
-        default: halt = 2; break;
-    }
+    memory[1] = noun; memory[2] = verb;
 
-if (halt == 2)
-    console.log('abnormal termination');
-else
-    console.log('memory[0] = ' + memory[0]);
+    let ip = 0;
+    let halt = 0;
+    while (halt === 0)
+        switch (memory[ip])
+        {
+            case  1: memory[memory[ip + 3]] = memory[memory[ip + 1]] + memory[memory[ip + 2]]; ip += 4; break;
+            case  2: memory[memory[ip + 3]] = memory[memory[ip + 1]] * memory[memory[ip + 2]]; ip += 4; break;
+            case 99: halt = 1; break;
+            default: halt = 2; break;
+        }
 
+    return memory[0];
+}
+
+console.log('Part 1: ' + intcode(originalMemory, 12, 2));
+
+function findNounVerb(inputMemory, targetOutput)
+{
+    for (let noun = 0; noun <= 99; noun++)
+        for (let verb = 0; verb <= 99; verb++)
+            if (targetOutput === intcode(inputMemory, noun, verb))
+                return 100 * noun + verb;
+}
+
+console.log('Part 2: ' + findNounVerb(originalMemory, 19690720));
