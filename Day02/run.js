@@ -3,7 +3,7 @@
 --- Day 2: 1202 Program Alarm ---
 
 Answers:
-    Part 1: 
+    Part 1: 4462686
     Part 2: 
 
 =================================
