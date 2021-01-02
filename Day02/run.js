@@ -23,7 +23,7 @@ code and data share the same memory
 
 let fs = require('fs');
 const data = fs.readFileSync('./input.txt', 'utf-8');
-let originalMemory = data.split(/\r?\n/)[0].split(',').map(function(v){return Number(v);});
+let originalMemory = data.split(/\r?\n/)[0].split(',').map(v=>Number(v));
 
 function intcode(inputMemory, noun, verb)
 {
