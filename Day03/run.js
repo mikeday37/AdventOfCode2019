@@ -71,7 +71,6 @@ function getManhattanDistanceOfClosestWireCrossing(input)
     for (let i of intersections)
     {
         let dist = Math.abs(i.x) + Math.abs(i.y);
-        //console.log(`\tmd(${i.x},${i.y}) = ${dist}`);
         if (mindist === null || dist < mindist)
             mindist = dist;
     }
@@ -113,19 +112,20 @@ function findIntersections(aCoords, bCoords) {
             // omit intersection with the first line segment from both wires
             if (aIndex === 1 && bIndex === 1) continue;
 
-            // we'd have to do something special and icky if they have the same orientation,
+            // we'd have to do something special if they have the same orientation,
+            // and I doubt Eric did that to us,
             // so let's see if we can safely ignore that case
             if (a.o === b.o)
             {
                 if (a.o === 'h')
                 {
                     if (a.y !== b.y) continue;
-                    assert(false, "yuck, h");
+                    assert(false, "overlap with both horizontal - case not handled");
                 }
                 else
                 {
                     if (a.x !== b.x) continue;
-                    assert(false, "yuck, v");
+                    assert(false, "overlap with both vertical - case not handled");
                 }
             }
 
