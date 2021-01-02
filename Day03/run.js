@@ -4,7 +4,7 @@
 
 Answers:
     Part 1: 227
-    Part 2: 
+    Part 2: 20286
 
 */
 
@@ -12,7 +12,7 @@ const { assert } = require('console');
 const { readFileSync } = require('fs');
 let fullRawInput = readFileSync('./input.txt', 'utf-8');
 let fullInput = parse(fullRawInput);
-let examples = [/**/{
+let examples = [{
         rawInput: 'R8,U5,L5,D3\nU7,R6,D4,L4',
         part1answer: 6,
         part2answer: 30
@@ -24,28 +24,12 @@ let examples = [/**/{
         rawInput: 'R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7',
         part1answer: 135,
         part2answer: 410
-    },{ // official examples above this line, manual below -- simple but turned out very helpful
-        rawInput: 'R1,U2,R2\nU1,R2,U2',
-        part1answer: 2,
-        part2answer: 4
-    },{
-        rawInput: 'R2\nL1,U1,R2,D1',
-        part1answer: 1,
-        part2answer: 6
-    },{
-        rawInput: 'R2,U4,L1,D6\nU1,R3,D2,L3',
-        part1answer: 2,
-        part2answer: 6
-    },/**/{
-        rawInput: 'R2,U1,L1,D3,R1,U1,L3\nD2',
-        part1answer: 1,
-        part2answer: 4
 }]
 
 testExamples();
-/*let info = getIntersectionMinimums(fullInput);
+let info = getIntersectionMinimums(fullInput);
 console.log('Part 1: ' + info.minDist);
-console.log('Part 2: ' + info.minSignalDelay);*/
+console.log('Part 2: ' + info.minSignalDelay);
 
 function parse(input)
 {
@@ -68,7 +52,7 @@ function testExamples()
         let part1result = info.minDist;
         let part2result = info.minSignalDelay;
         let part1good = part1result === e.part1answer;
-        let part2good = true;//part2result === e.part2answer;
+        let part2good = part2result === e.part2answer;
         let bothGood = part1good && part2good;
         assert(part1good, `example index ${i} mismatch on part 1`); // asserting to highlight problems
         assert(part2good, `example index ${i} mismatch on part 2`);
@@ -93,6 +77,7 @@ function getIntersectionMinimums(input)
 {
     let wireCoordinates = input.map(directions => toCoordinates(directions));
     let intersections = getAllIntersectionInfo(wireCoordinates[0], wireCoordinates[1]);
+
     let minDist = null;
     for (let i of intersections)
     {
@@ -100,7 +85,15 @@ function getIntersectionMinimums(input)
         if (minDist === null || dist < minDist)
             minDist = dist;
     }
+
     let minSignalDelay = null;
+    for (let i of intersections)
+    {
+        let delay = i.steps;
+        if (minSignalDelay === null || delay < minDist)
+            minSignalDelay = delay;
+    }
+
     return {minDist, minSignalDelay};
 }
 
@@ -123,97 +116,7 @@ function toCoordinates(directions)
 
 function getAllIntersectionInfo(aCoords, bCoords)
 {
-    var aIntersectionSteps = findSelfIntersections(aCoords);
-    var bIntersectionSteps = findSelfIntersections(bCoords);
-    return findIntersections(aCoords, bCoords, aIntersectionSteps, bIntersectionSteps);
-}
-
-function findSelfIntersections(aCoords)
-{
-    // we're going to reuse the two-wire loop code, modified slightly, so "b" is "a"
-    let bCoords = aCoords;
-
-    // we'll be building a map of all self intersections to number of steps at that intersection, and tracking the prev found
-    let intersections = new Map();
-    let prevIntersection = null;
-
-    // track the steps taken
-    let steps = 0;
-
-    // loop through all a coords - tracking steps with wire a
-    let a = aCoords[0];
-    let apx = a.x, apy = a.y; // prev a coords
-    for (let aIndex = 1; aIndex < aCoords.length; aIndex++, apx = a.x, apy = a.y)
-    {
-        a = aCoords[aIndex];
-
-        // increment steps to end of this segment, we'll adjust in b-loop if necessary
-        steps += getStepsTo(apx, apy, a);
-
-        // loop through all b coords - only checking for intersections with "b"
-        let b = bCoords[0];
-        let bpx = b.x, bpy = b.y; // prev b coords
-        for (let bIndex = 1; bIndex <= aIndex - 3; // this modification is because we can't intersect ourselves sooner than with a segment 3 turns ago
-                bIndex++, bpx = b.x, bpy = b.y)
-        {
-            b = bCoords[bIndex];
-
-            // get potential intersection, continue if none
-            let i = getIntersection(apx, apy, a, bpx, bpy, b);
-            if (i === null) continue;
-
-            // build a key for this intersection, and calculate steps from intersection to latest a
-            let key = i.x + ',' + i.y;
-            let stepsAfterIntersection = getStepsTo(i.x, i.y, a);
-
-            // if the intersection is already known, throw
-            if (intersections.has(key))
-                throw new Error("unexpected - intersection reached twice by same wire!");
-            else
-            {
-                // otherwise, calculate the steps to the intersection, and save it
-                let oldSteps = steps;
-                steps = getStepsToPointSuccessive(aCoords, prevIntersection, i.x, i.y);
-                let newIntersection = {x: i.x, y: i.y, steps, aIndex};
-                intersections.set(key, newIntersection);
-                prevIntersection = newIntersection;
-
-                // add the steps from there to here
-                steps += stepsAfterIntersection;
-            }
-        }
-    }
-    return intersections;
-}
-
-function getStepsToPointSuccessive(aCoords, prevIntersection, ix, iy)
-{
-    let aIndex = 1, steps = 0;
-    let a = aCoords[0];
-    let apx = a.x, apy = a.y;
-    if (prevIntersection != null)
-    {
-        aIndex = prevIntersection.aIndex;
-        steps = prevIntersection.steps;
-        apx = prevIntersection.x;
-        apy = prevIntersection.y;
-    }
-    for (; aIndex < aCoords.length; aIndex++, apx = a.x, apy = a.y)
-    {
-        a = aCoords[aIndex];
-        steps += getStepsTo(apx, apy, a);
-        if (isPointInSegment(apx, apy, a, ix, iy))
-            return steps - getStepsTo(ix, iy, a)
-    }
-    throw new Error("expected intersection not found");
-}
-
-function isPointInSegment(apx, apy, a, x, y)
-{
-    if (a.o === 'h')
-        return y === apy && x >= Math.min(apx, a.x) && x <= Math.max(apx, a.x);
-    else
-        return x === apx && y >= Math.min(apy, a.y) && y <= Math.max(apy, a.y);
+    return findIntersections(aCoords, bCoords);
 }
 
 function getStepsTo(px, py, a)
@@ -229,16 +132,20 @@ function findIntersections(aCoords, bCoords, aSelfIntersectionSteps, bSelfInters
     // loop through all a coords
     let a = aCoords[0];
     let apx = a.x, apy = a.y; // prev a coords
+    let aSteps = 0;
     for (let aIndex = 1; aIndex < aCoords.length; ++aIndex, apx = a.x, apy = a.y)
     {
         a = aCoords[aIndex];
+        aSteps += getStepsTo(apx, apy, a);
 
         // loop through all b coords
         let b = bCoords[0];
         let bpx = b.x, bpy = b.y; // prev b coords
+        let bSteps = 0;
         for (let bIndex = 1; bIndex < bCoords.length; ++bIndex, bpx = b.x, bpy = b.y)
         {
             b = bCoords[bIndex];
+            bSteps += getStepsTo(bpx, bpy, b);
 
             // omit intersection with the first line segment from both wires
             if (aIndex === 1 && bIndex === 1) continue;
@@ -248,7 +155,7 @@ function findIntersections(aCoords, bCoords, aSelfIntersectionSteps, bSelfInters
             if (i === null) continue;
 
             // determine the signal length to the intersection
-            // todo: i.steps = 
+            i.steps = aSteps + bSteps - getStepsTo(i.x, i.y, a) - getStepsTo(i.x, i.y, b);
 
             // push intersection to return it with the rest
             intersections.push(i);
