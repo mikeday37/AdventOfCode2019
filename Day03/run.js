@@ -80,6 +80,7 @@ function getIntersectionMinimums(input)
 
     let minDist = Math.min(...intersections.map((i) => Math.abs(i.x) + Math.abs(i.y)));
     let minSignalDelay = Math.min(...intersections.map((i) => i.steps));
+    
     return {minDist, minSignalDelay};
 }
 
@@ -105,7 +106,7 @@ function getStepsTo(px, py, a)
     return a.o === 'h' ? Math.abs(a.x - px) : Math.abs(a.y - py);
 }
 
-function findIntersections(aCoords, bCoords, aSelfIntersectionSteps, bSelfIntersectionSteps)
+function findIntersections(aCoords, bCoords)
 {
     // we'll be pushing onto an array to return all intersections found
     let intersections = [];
