@@ -76,24 +76,10 @@ function testExamples()
 function getIntersectionMinimums(input)
 {
     let wireCoordinates = input.map(directions => toCoordinates(directions));
-    let intersections = getAllIntersectionInfo(wireCoordinates[0], wireCoordinates[1]);
+    let intersections = findIntersections(wireCoordinates[0], wireCoordinates[1]);
 
-    let minDist = null;
-    for (let i of intersections)
-    {
-        let dist = Math.abs(i.x) + Math.abs(i.y);
-        if (minDist === null || dist < minDist)
-            minDist = dist;
-    }
-
-    let minSignalDelay = null;
-    for (let i of intersections)
-    {
-        let delay = i.steps;
-        if (minSignalDelay === null || delay < minDist)
-            minSignalDelay = delay;
-    }
-
+    let minDist = Math.min(...intersections.map((i) => Math.abs(i.x) + Math.abs(i.y)));
+    let minSignalDelay = Math.min(...intersections.map((i) => i.steps));
     return {minDist, minSignalDelay};
 }
 
@@ -112,11 +98,6 @@ function toCoordinates(directions)
         coordinates.push({x, y, o});
     }
     return coordinates;
-}
-
-function getAllIntersectionInfo(aCoords, bCoords)
-{
-    return findIntersections(aCoords, bCoords);
 }
 
 function getStepsTo(px, py, a)
