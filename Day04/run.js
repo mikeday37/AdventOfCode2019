@@ -15,8 +15,8 @@ const { readFileSync } = require('fs');
     addExtensions();
     doTests();
 
-    let range = readFileSync('./input.txt', 'utf-8').trim().split('-').map(x => Number(x.trim()));
-    let [min, max] = [range[0], range[1]]
+    const range = readFileSync('./input.txt', 'utf-8').trim().split('-').map(x => Number(x.trim()));
+    const [min, max] = [range[0], range[1]]
     doPart(min, max, 1);
     doPart(min, max, 2);
 })();

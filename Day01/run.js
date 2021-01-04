@@ -8,15 +8,21 @@ Answers:
     
 */
 
-let fs = require('fs');
-const data = fs.readFileSync('./input.txt', 'utf-8');
-const lines = data.split(/\r?\n/);
+const { readFileSync } = require('fs');
+
+(function(){
+    const data = readFileSync('./input.txt', 'utf-8');
+    const lines = data.split(/\r?\n/);
+
+    doPart(lines, 1, getFuel);
+    doPart(lines, 2, getFuel2);
+})();
 
 function getFuel(input){
     return Math.floor(input / 3) - 2;
 }
 
-function doPart(part, fuelMethod)
+function doPart(lines, part, fuelMethod)
 {
     let sum = 0;
     lines.forEach((line)=>{
@@ -36,6 +42,3 @@ function getFuel2(input){
     }
     return totalFuel;
 }
-
-doPart(1, getFuel);
-doPart(2, getFuel2);

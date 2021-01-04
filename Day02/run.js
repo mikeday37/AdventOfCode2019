@@ -21,9 +21,15 @@ code and data share the same memory
 
 */
 
-let fs = require('fs');
-const data = fs.readFileSync('./input.txt', 'utf-8');
-let originalMemory = data.split(/\r?\n/)[0].split(',').map(v=>Number(v));
+const { readFileSync } = require('fs');
+
+(function(){
+    const data = readFileSync('./input.txt', 'utf-8');
+    const originalMemory = data.split(/\r?\n/)[0].split(',').map(v=>Number(v));
+
+    console.log('Part 1: ' + intcode(originalMemory, 12, 2));
+    console.log('Part 2: ' + findNounVerb(originalMemory, 19690720));
+})();
 
 function intcode(inputMemory, noun, verb)
 {
@@ -45,8 +51,6 @@ function intcode(inputMemory, noun, verb)
     return memory[0];
 }
 
-console.log('Part 1: ' + intcode(originalMemory, 12, 2));
-
 function findNounVerb(inputMemory, targetOutput)
 {
     for (let noun = 0; noun <= 99; noun++)
@@ -54,5 +58,3 @@ function findNounVerb(inputMemory, targetOutput)
             if (targetOutput === intcode(inputMemory, noun, verb))
                 return 100 * noun + verb;
 }
-
-console.log('Part 2: ' + findNounVerb(originalMemory, 19690720));
