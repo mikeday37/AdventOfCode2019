@@ -38,10 +38,10 @@ function parse(input)
 {
     return input.trimEnd().split(/\r?\n/)
         .map(line => line.trimEnd().split(',')
-            .map(entry => {return{
+            .map(entry => ({
                 dir: entry[0],
                 n: Number(entry.slice(1))
-            }})
+            }))
         );
 }
 
@@ -81,8 +81,8 @@ function getIntersectionMinimums(input)
     let wireCoordinates = input.map(directions => toCoordinates(directions));
     let intersections = findIntersections(wireCoordinates[0], wireCoordinates[1]);
 
-    let minDist = Math.min(...intersections.map((i) => Math.abs(i.x) + Math.abs(i.y)));
-    let minSignalDelay = Math.min(...intersections.map((i) => i.steps));
+    let minDist = Math.min(...intersections.map(i => Math.abs(i.x) + Math.abs(i.y)));
+    let minSignalDelay = Math.min(...intersections.map(i => i.steps));
     
     return {minDist, minSignalDelay};
 }

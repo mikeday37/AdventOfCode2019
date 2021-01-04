@@ -90,11 +90,11 @@ function doTests()
 function logTest(logLabel, numberString, part1answer, part2answer)
 {
     let digits = numberString.toNumberArray();
-    let results = [1,2].map(x => {return{
+    let results = [1,2].map(x => ({
         part: x,
         valid: isValid(digits, x),
         expected: (x == 1 ? part1answer : part2answer)
-    }});
+    }));
     console.log(`${logLabel} = '${numberString}':`);
     let pass = true;
     for (let r of results)

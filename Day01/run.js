@@ -25,7 +25,7 @@ function getFuel(input){
 function doPart(lines, part, fuelMethod)
 {
     let sum = 0;
-    lines.forEach((line)=>{
+    lines.forEach(line => {
         if (line.trim().length > 0)
             sum += fuelMethod(line);
     });
