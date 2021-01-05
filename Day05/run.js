@@ -111,7 +111,7 @@ function checkExamples(ops)
     check('3,0,3,1,1,0,1,0,4,0,99', [1010,303], [1313]);
 
     // heh...
-    let fibonacciIntcodeProgram =
+    const fibonacciIntcodeProgram =
 
         // @ 00:  skip variable area
 
@@ -136,7 +136,7 @@ function checkExamples(ops)
         +',1005,4,29'  // skip the next instruction (halt) if [4] === 1
         +',99'         // if we hit this we're done
 
-        // @ 29: otherwise, continue
+        // @ 29:  otherwise, continue
 
         +',101,0,1,0'  // [0] = [1], roll left part 1
         +',101,0,2,1'  // [1] = [2], roll left part 2
