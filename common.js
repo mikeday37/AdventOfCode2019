@@ -4,8 +4,8 @@ exports.doWithBenchmarking = doWithBenchmarking;
 
 // use like this:
 // doWithBenchmarking(time =>{
-//     let result = time('label', ()=>doStuffThatNeedsToBeTimed()); // time() returns whatever the inner function returns
-//     let result = time('another', ()=>youCanTimeAsManyThingsAsYouWant()); // just don't use time() in a loop unless you give it separate labels
+//     const result = time('label', ()=>doStuffThatNeedsToBeTimed()); // time() returns whatever the inner function returns
+//     const result2 = time('another', ()=>youCanTimeAsManyThingsAsYouWant()); // just don't use time() in a loop unless you give it separate labels
 // })
 function doWithBenchmarking(body)
 {
