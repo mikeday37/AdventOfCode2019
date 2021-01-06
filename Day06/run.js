@@ -10,13 +10,12 @@ Answers:
 
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const { doWithBenchmarking } = require('../common.js');
+const common = require('../common.js');
 
 (function(){
     checkExamples();
 
-    doWithBenchmarking(time =>
-    {
+    common.benchmark(time => {
         const tree = time('read and parse', ()=>parseOrbits(readFileSync('./input.txt', 'utf-8')));
         console.log(`Part 1: ${time('Part 1', ()=>getTotalOrbits(tree))}`);
         console.log(`Part 2: ${time('Part 2', ()=>getTransferCount(tree))}`);

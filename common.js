@@ -1,30 +1,36 @@
 const { hrtime } = require('process');
 
-exports.doWithBenchmarking = doWithBenchmarking;
+exports.benchmark = benchmark;
+exports.addExtensions = addExtensions;
+
 
 // use like this:
-// doWithBenchmarking(time =>{
+//
+// common.benchmark(time =>{
 //     const result = time('label', ()=>doStuffThatNeedsToBeTimed()); // time() returns whatever the inner function returns
 //     const result2 = time('another', ()=>youCanTimeAsManyThingsAsYouWant()); // just don't use time() in a loop unless you give it separate labels
 // })
-function doWithBenchmarking(body)
+function benchmark(body, maxRuns = null)
 {
-    const maxRuns = 100, maxSeconds = 1;
+    const runLimit = maxRuns || 100, maxSeconds = 1;
 
     let timings = new Map();
     function time(label, action)
     {
+        timings.set(label, []);
         let result = null, run = 1, start = hrtime();
-        while (run < 2 || (hrtime(start)[0] <= maxSeconds && run <= maxRuns))
+        do
         {
             const before = hrtime();
             result = action();
             const duration = hrtime(before);
-            if (!timings.has(label))
-                timings.set(label, []);
+
             timings.get(label).push(duration);
+
             run++;
         }
+        while (hrtime(start)[0] < maxSeconds && run <= runLimit);
+
         return result;
     }
 
@@ -64,4 +70,37 @@ function doWithBenchmarking(body)
 
     console.log('                      +--------------+--------------+--------------+--------------+--------+');
     console.log('--- end ---');
+}
+
+function addExtensions()
+{
+    // decided to play with technique for extending existing types "safely."
+    // this seems to be the closest you can get to C# extension methods in JS,
+    // and is not without serious caveats.
+    //
+    // of particular note, this affects the entire "realm" it is executed in, so
+    // this is not an appropriate technique to use in published/shared library
+    // code, where you don't have control over other code executed in the realm.
+    //
+    // see: https://stackoverflow.com/a/9354310/4730748
+    //
+
+    Object.defineProperty(Array.prototype, "withIndex", {
+        value: function withIndex(){
+            let result = [];
+            for (let i = 0; i < this.length; i++)
+                result.push({item: this[i], index: i});
+            return result;
+        },
+        writable: true,
+        configurable: true
+    });
+
+    Object.defineProperty(String.prototype, "toNumberArray", {
+        value: function toNumberArray(){
+            return [...this].map(x => Number(x));
+        },
+        writable: true,
+        configurable: true
+    });
 }
