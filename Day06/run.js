@@ -15,20 +15,9 @@ const { readFileSync } = require('fs');
     checkExamples();
 
     const tree = parseOrbits(readFileSync('./input.txt', 'utf-8'));
-    doPart1(tree);
-    doPart2(tree);
+    console.log(`Part 1: ${getTotalOrbits(tree)}`);
+    console.log(`Part 2: ${getTransferCount(tree)}`);
 })();
-
-function doPart1(tree)
-{
-    const totalOrbits = getTotalOrbits(tree);
-    console.log(`Part 1: ${totalOrbits}`);
-}
-
-function doPart2(tree)
-{
-    //todo
-}
 
 function parseOrbits(input)
 {
@@ -45,16 +34,32 @@ function parseOrbits(input)
 function getTotalOrbits(tree)
 {
     let total = 0;
-    tree.forEach((b, a, m) => { // A)B
-        let current = a;
-        while (m.has(current))
-        {
-            total++;
-            current = m.get(current);
-        };
-        assert(current === 'COM', `unexpected center of mass: ${current}`);
-    });
+    tree.forEach(b => total += 1 + getPathToCenter(b, tree).length); // A)B as B -> A
     return total;
+}
+
+function getPathToCenter(start, tree)
+{
+    let path = [];
+    let current = start;
+    while (tree.has(current)) // A)B as B -> A
+    {
+        current = tree.get(current);
+        path.push(current);
+    }
+    assert(current === 'COM', `unexpected center of mass: ${current}`);
+    return path;
+}
+
+function getTransferCount(tree, x = 'YOU', y = 'SAN')
+{
+    const [xPath, yPath] = [x,y].map(v => getPathToCenter(v, tree).reverse());
+    
+    let i = 0;
+    while (xPath[i] === yPath[i])
+        i++;
+
+    return xPath.length + yPath.length - i - i;
 }
 
 function checkExamples()
@@ -62,15 +67,18 @@ function checkExamples()
     let allPass = true;
     let checkCount = 0;
 
-    function check(expectedTotalOrbits, input)
+    function check(expected, checkMethod, input)
     {
         ++checkCount;
         const tree = parseOrbits(input);
-        const totalOrbits = getTotalOrbits(tree);
-        const pass = totalOrbits === expectedTotalOrbits;
-        assert(pass, `check # ${checkCount} failed:  expected = ${expectedTotalOrbits}, returned = ${totalOrbits}`);
+        const result = checkMethod(tree);
+        const pass = result === expected;
+        assert(pass, `check # ${checkCount} failed:  expected = ${expected}, returned = ${result}`);
         if (!pass) allPass = false;
     }
+
+    function check1(expected, input) {check(expected, getTotalOrbits, input);}
+    function check2(expected, input) {check(expected, getTransferCount, input);}
 
     doChecks();
 
@@ -81,22 +89,22 @@ function checkExamples()
 
     function doChecks()
     {
-        check(3, `
+        check1(3, `
             COM)A
             A)B
         `);
-        check(6, `
+        check1(6, `
             COM)A
             A)B
             B)C
         `);
-        check(5, `
+        check1(5, `
             COM)A
             A)B
             A)C
         `);
         // this time official examples are below, manual above
-        check(42, `
+        check1(42, `
             COM)B
             B)C
             C)D
@@ -109,5 +117,20 @@ function checkExamples()
             J)K
             K)L
         `);
+        check2(4, `
+            COM)B
+            B)C
+            C)D
+            D)E
+            E)F
+            B)G
+            G)H
+            D)I
+            E)J
+            J)K
+            K)L
+            K)YOU
+            I)SAN
+        `)
     }
 }
