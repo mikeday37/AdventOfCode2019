@@ -34,11 +34,11 @@ function parseOrbits(input)
 function getTotalOrbits(tree)
 {
     let total = 0;
-    tree.forEach(b => total += 1 + getPathToCenter(b, tree).length); // A)B as B -> A
+    tree.forEach(b => total += 1 + getPathToCenter(tree, b).length); // A)B as B -> A
     return total;
 }
 
-function getPathToCenter(start, tree)
+function getPathToCenter(tree, start)
 {
     let path = [];
     let current = start;
@@ -53,7 +53,7 @@ function getPathToCenter(start, tree)
 
 function getTransferCount(tree, x = 'YOU', y = 'SAN')
 {
-    const [xPath, yPath] = [x,y].map(v => getPathToCenter(v, tree).reverse());
+    const [xPath, yPath] = [x,y].map(v => getPathToCenter(tree, v).reverse());
     
     let i = 0;
     while (xPath[i] === yPath[i])
