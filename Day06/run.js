@@ -3,8 +3,8 @@
 --- Day 6: Universal Orbit Map ---
 
 Answers:
-    Part 1: 
-    Part 2: 
+    Part 1: 308790
+    Part 2: 472
 
 */
 
@@ -22,7 +22,7 @@ const { readFileSync } = require('fs');
 function parseOrbits(input)
 {
     const lines = input.trim().split(/\r?\n/).map(x => x.trim());
-    const tree = new Map(); // orbiter -> what it orbits | equivalently:  represents A)B as B -> A
+    const tree = new Map(); // orbiter -> what it orbits | equivalently: represents A)B as B -> A
     for (let l of lines)
     {
         const a = l.split(')');
