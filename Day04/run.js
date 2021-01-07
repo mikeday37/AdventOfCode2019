@@ -45,7 +45,7 @@ function doTests()
 
     let pass = true;
     for (let e of examples.withIndex())
-        if (!logTest(`example index ${e.index}`, e.item.value, e.item.part1valid, e.item.part2valid))
+        if (!doSingleTest(`example index ${e.index}`, e.item.value, e.item.part1valid, e.item.part2valid))
             pass = false;
 
     if (pass)
@@ -54,7 +54,7 @@ function doTests()
     assert(pass, 'At least one example failed.');
 }
 
-function logTest(logLabel, numberString, part1answer, part2answer)
+function doSingleTest(logLabel, numberString, part1answer, part2answer, verbose = false)
 {
     let digits = numberString.toNumberArray();
     let results = [1,2].map(x => ({
@@ -62,12 +62,12 @@ function logTest(logLabel, numberString, part1answer, part2answer)
         valid: isValid(digits, x),
         expected: (x == 1 ? part1answer : part2answer)
     }));
-    console.log(`${logLabel} = '${numberString}':`);
+    if (verbose) console.log(`${logLabel} = '${numberString}':`);
     let pass = true;
     for (let r of results)
     {
         let examplePass = r.valid === r.expected;
-        console.log(`\tpart ${r.part}: valid = ${r.valid}, expected = ${r.expected} -- ${(examplePass ? "PASS" : "FAIL")}`);
+        if (verbose) console.log(`\tpart ${r.part}: valid = ${r.valid}, expected = ${r.expected} -- ${(examplePass ? "PASS" : "FAIL")}`);
         if (!examplePass)
             pass = false;
     }

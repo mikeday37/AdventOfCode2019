@@ -58,7 +58,7 @@ function postAll()
 	console.log('\t           Part 1:         Part 2:');
 	console.log('\t         +---------------+---------------+');
 	for (let day = 1; day <= maxDay; day++)
-		console.log(`\tDay ${String(day).padStart(2,'0')}   |  ${results.get(`${day}-1`)}  |  ${results.get(`${day}-2`)}  |   ${t.days.get(day).dayName}`);
+		console.log(`\tDay ${String(day).padStart(2,'0')}   |  ${results.get(`${day}-1`)}  |  ${results.get(`${day}-2`) || '   (n/a)   '}  |   ${t.days.get(day).dayName}`);
 	console.log('\t         +---------------+---------------+');
 
 	// tally the classifications
