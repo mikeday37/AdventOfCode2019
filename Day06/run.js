@@ -1,24 +1,20 @@
-/*
-
---- Day 6: Universal Orbit Map ---
-
-Answers:
-    Part 1: 308790
-    Part 2: 472
-
-*/
-
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const common = require('../common.js');
 
 (function(){
+    common.day(6, 'Universal Orbit Map',
+        308790,
+        472
+    );
+    
     checkExamples();
 
-    common.benchmark(time => {
+    common.benchmark((time, doPart) => {
         const tree = time('read and parse', ()=>parseOrbits(readFileSync('./input.txt', 'utf-8')));
-        console.log(`Part 1: ${time('Part 1', ()=>getTotalOrbits(tree))}`);
-        console.log(`Part 2: ${time('Part 2', ()=>getTransferCount(tree))}`);
+
+        doPart(1, ()=>getTotalOrbits(tree));
+        doPart(2, ()=>getTransferCount(tree));
     });
 })();
 

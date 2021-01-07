@@ -1,17 +1,13 @@
-/*
-
---- Day 3: Crossed Wires ---
-
-Answers:
-    Part 1: 227
-    Part 2: 20286
-
-*/
-
 const { assert } = require('console');
 const { readFileSync } = require('fs');
+const common = require('../common.js');
 
 (function(){
+    common.day(3, 'Crossed Wires',
+        227,
+        20286
+    );
+
     const fullRawInput = readFileSync('./input.txt', 'utf-8');
     const fullInput = parse(fullRawInput);
     const examples = [{
@@ -29,9 +25,12 @@ const { readFileSync } = require('fs');
     }]
     
     testExamples(examples);
-    const info = getIntersectionMinimums(fullInput);
-    console.log('Part 1: ' + info.minDist);
-    console.log('Part 2: ' + info.minSignalDelay);
+
+    common.benchmark((time, doPart, notePart) => {
+        const info = time('both parts together', ()=>getIntersectionMinimums(fullInput));
+        notePart(1, info.minDist);
+        notePart(2, info.minSignalDelay);
+    });
 })();
 
 function parse(input)

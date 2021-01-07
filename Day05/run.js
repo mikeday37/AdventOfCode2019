@@ -1,27 +1,26 @@
-/*
-
---- Day 5: Sunny with a Chance of Asteroids ---
-
-Answers:
-    Part 1: 15386262
-    Part 2: 10376124
-
-*/
-
 const { assert } = require('console');
 const { readFileSync } = require('fs');
+const common = require('../common.js');
 
 (function(){
+    common.day(5, 'Sunny with a Chance of Asteroids',
+        15386262,
+        10376124
+    );
+
     const ops = getKnownIntcodeOperations();
 
     checkExamples(ops);
 
-    const program = parseProgram(readFileSync('./input.txt', 'utf-8').trim());
-    doPart1(ops, program);
-    doPart2(ops, program);
+    common.benchmark((time, doPart) => {
+        const program = parseProgram(readFileSync('./input.txt', 'utf-8').trim());
+        
+        doPart(1, ()=>getPart1(ops, program));
+        doPart(2, ()=>getPart2(ops, program));
+    });
 })();
 
-function doPart1(ops, program)
+function getPart1(ops, program)
 {
     const result = runIntcodeProgram(ops, program, [1]);
     let nonZeros = 0, last = null;
@@ -32,15 +31,15 @@ function doPart1(ops, program)
     }
     const valid = result.haltCode === 1 && nonZeros === 1 && last !== 0;
     assert(valid, "computer invalid");
-    console.log(`Part 1: ${last}`);
+    return last;
 }
 
-function doPart2(ops, program)
+function getPart2(ops, program)
 {
     const result = runIntcodeProgram(ops, program, [5]);
     const valid = result.haltCode === 1 && result.output.length === 1;
     assert(valid, "part 2 computer invalid");
-    console.log(`Part 2: ${result.output[0]}`);
+    return result.output[0];
 }
 
 function parseProgram(programString)

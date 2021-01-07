@@ -1,8 +1,40 @@
 const { hrtime } = require('process');
 
+exports.__getResultsTracker = __getResultsTracker;
+exports.day = day;
 exports.benchmark = benchmark;
 exports.addExtensions = addExtensions;
 
+
+if (typeof __resultsTracker === 'undefined')
+{
+    var __resultsTracker = __createResultsTracker();
+}
+
+function __createResultsTracker(tracker = {})
+{
+    tracker.days = new Map();
+    tracker.currentDay = null;
+    tracker.runFast = false;
+    tracker.startDay = (dayNumber, dayName, expectedPart1Answer, expectedPart2Answer) => {
+        tracker.days.set(dayNumber, {
+            dayNumber,
+            dayName,
+            expectedAnswers: [expectedPart1Answer, expectedPart2Answer],
+            answers: [null, null]
+        });
+        tracker.currentDay = dayNumber;
+    }
+    
+    return tracker;
+}
+
+function __getResultsTracker() {return __resultsTracker;}
+
+function day(dayNumber, dayName, expectedPart1Answer = null, expectedPart2Answer = null)
+{
+    __resultsTracker.startDay(dayNumber, dayName, expectedPart1Answer, expectedPart2Answer);
+}
 
 // use like this:
 //
@@ -12,7 +44,11 @@ exports.addExtensions = addExtensions;
 // })
 function benchmark(body, maxRuns = null)
 {
-    const runLimit = maxRuns || 100, maxSeconds = 1;
+    const 
+        maxSeconds = 1,
+        runLimit = __resultsTracker.runFast
+            ? 1
+            : maxRuns || 1000;
 
     let timings = new Map();
     function time(label, action)
@@ -34,7 +70,27 @@ function benchmark(body, maxRuns = null)
         return result;
     }
 
-    body(time);
+    function doPart(part, fn)
+    {
+        notePart(part, time(`Part ${part}`, ()=>fn()));
+    }
+
+    function notePart(part, result)
+    {
+        if (!(part === 1 || part === 2))
+            throw Error(`invalid part number: ${part}`);
+        const day = __resultsTracker.days.get(__resultsTracker.currentDay);
+        day.answers[part-1] = result;
+        let valid = null, validMsg = '';
+        if (day.expectedAnswers[part-1] !== null)
+        {
+            valid = result == day.expectedAnswers[part-1]; // intentional ==
+            validMsg = `   -- ${valid ? 'CORRECT' : '!! WRONG !!'} --`;
+        }
+        console.log(`Part ${part}: ${result}${validMsg}`);
+    }
+
+    body(time, doPart, notePart);
 
     console.log('\n--- timing info: ---')
 

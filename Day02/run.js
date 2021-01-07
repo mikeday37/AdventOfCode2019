@@ -1,13 +1,5 @@
 /*
 
---- Day 2: 1202 Program Alarm ---
-
-Answers:
-    Part 1: 4462686
-    Part 2: 5936
-
-=================================
-
 instruction:
     op,from1,from2,dest
 
@@ -22,13 +14,21 @@ code and data share the same memory
 */
 
 const { readFileSync } = require('fs');
+const common = require('../common.js');
 
 (function(){
-    const data = readFileSync('./input.txt', 'utf-8');
-    const originalMemory = data.split(/\r?\n/)[0].split(',').map(v=>Number(v));
+    common.day(2, '1202 Program Alarm',
+        4462686,
+        5936
+    );
 
-    console.log('Part 1: ' + intcode(originalMemory, 12, 2));
-    console.log('Part 2: ' + findNounVerb(originalMemory, 19690720));
+    common.benchmark((time, doPart) => {
+        const data = time('read input', ()=>readFileSync('./input.txt', 'utf-8'));
+        const originalMemory = time('parse input', ()=>data.split(/\r?\n/)[0].split(',').map(v=>Number(v)));
+
+        doPart(1, ()=>intcode(originalMemory, 12, 2));
+        doPart(2, ()=>findNounVerb(originalMemory, 19690720));
+    });
 })();
 
 function intcode(inputMemory, noun, verb)

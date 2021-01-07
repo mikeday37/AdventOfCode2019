@@ -1,18 +1,12 @@
-/*
-
---- Day 4: Secure Container ---
-
-Answers:
-    Part 1: 889
-    Part 2: 589
-
-*/
-
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const common = require('../common.js');
 
 (function(){
+    common.day(4, 'Secure Container',
+        889,
+        589
+    );    
     common.addExtensions();
 
     doTests();
@@ -20,13 +14,11 @@ const common = require('../common.js');
     const range = readFileSync('./input.txt', 'utf-8').trim().split('-').map(x => Number(x.trim()));
     const [min, max] = [range[0], range[1]]
 
-    common.benchmark(time => {
-        for (let part of [1,2]) {
-            let label = `Part ${part}`;
-            let result = time(label, ()=>doPart(min, max, part));
-            console.log(`${label}: ${result}`);        
-        }
-    }, 1);
+    common.benchmark((time, doPart) =>
+    {
+        doPart(1, ()=>getPart(min, max, 1));
+        doPart(2, ()=>getPart(min, max, 2));
+    });
 })();
 
 function doTests()
@@ -82,7 +74,7 @@ function logTest(logLabel, numberString, part1answer, part2answer)
     return pass;
 }
 
-function doPart(min, max, part)
+function getPart(min, max, part)
 {
     // there's tons of room to optimize, here, and in the isValid() function.
     // but as it is, it ran in under one second for each part.
