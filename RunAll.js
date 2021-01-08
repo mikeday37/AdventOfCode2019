@@ -1,18 +1,22 @@
 
-const maxDay = 6;
 
 const { assert } = require('console');
+const { readdirSync } = require('fs');
+const { cwd } = require('process');
 const common = require('./common.js');
 
 common.__getResultsTracker().runFast = true;
 
+const maxDay = readdirSync(cwd(), {withFileTypes: true})
+	.filter(entry => entry.isDirectory() && entry.name.match(/Day\d+/))
+	.length;
 for (let day = 1; day <= maxDay; day++)
 {
 	preDay(day);
 	let dir = `./Day${String(day).padStart(2, '0')}/`
 	process.chdir(dir);
 	let path = `${dir}run.js`;
-	let source = require(path);
+	require(path);
 	process.chdir('../');
 }
 
