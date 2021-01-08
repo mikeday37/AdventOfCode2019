@@ -24,9 +24,8 @@ function permute(a, fn)
     if (a.length === 1)
         fn(a);
     else
-        if (a.length > 1)
-            for (let i = 0; i < a.length; i++)
-                permute([...a.slice(0, i), ...a.slice(i + 1)], (r) => fn([a[i], ...r]));
+        for (let i = 0; i < a.length; i++)
+            permute([...a.slice(0, i), ...a.slice(i + 1)], (r) => fn([a[i], ...r]));
 }
 
 function getMaxThrusterSignal(intcode, program)
