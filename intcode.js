@@ -8,7 +8,7 @@ function getIntcodeService()
 	return {
 		parse: (programString) => programString.trim().split(',').map(v=>Number(v.trim())),
 		run: (initialMemory, input = [], logSteps = false) => runIntcodeProgram(knownOperations, initialMemory, input, logSteps),
-		init: (ops, initialMemory, io) => initializeIntcodeMachine(ops, initialMemory, io)
+		init: (initialMemory, io) => initializeIntcodeMachine(knownOperations, initialMemory, io)
 	};
 }
 
@@ -89,10 +89,8 @@ function iterateIntecodeMachine(state, logSteps = false)
 	let ops = state.ops;
 	let memory = state.memory;
     let instructionPointer = state.instructionPointer;
-    let haltCode = 0;
-	let haltReason = null;
 
-	const doHalt = (code, reason) => [haltCode, haltReason] = [code, reason];
+	const doHalt = (code, reason) => [state.haltCode, state.haltReason] = [code, reason];
 
 	// TODO: add check, only allow stepping if haltCode is zero or awaiting input
 
@@ -103,21 +101,18 @@ function iterateIntecodeMachine(state, logSteps = false)
 	}
 
 	state.instructionPointer = instructionPointer;
-	state.haltCode = haltCode;
-	state.haltReason = haltReason;
 
-	function inner() { // I did it this strange way temporarily to minimize the impact of the day 7 refactor
-	do
+	function inner()
     {
         if (instructionPointer < 0)
         {
             doHalt(-1, `instruction pointer too low: ${instructionPointer}`);
-            break;
+            return;
         }
         if (instructionPointer >= memory.length)
         {
             doHalt(-2, `instruction pointer too high: ${instructionPointer}`);
-            break;
+            return;
         }
 
         const opcodeValue = memory[instructionPointer];
@@ -126,7 +121,7 @@ function iterateIntecodeMachine(state, logSteps = false)
         if (!ops.has(opcode))
         {
             doHalt(-3, `unknown opcode: ${opcode}`);
-            break;
+            return;
         }
 
         const op = ops.get(opcode);
@@ -134,7 +129,7 @@ function iterateIntecodeMachine(state, logSteps = false)
         if (instructionPointer + op.paramCount >= memory.length)
         {
             doHalt(-4, `instruction ${op.name} requires ${op.paramCount} parameters, requiring memory read out of range.`);
-            break;
+            return;
         }
 
         const modeString = String(Number(opcodeValue) + 10 ** (2 + op.paramCount)).slice(1, op.paramCount + 1);
@@ -151,6 +146,9 @@ function iterateIntecodeMachine(state, logSteps = false)
             // lol, that was enough to debug the fibonacci program :D
         }
 
+		state.haltCode = 0;
+		state.haltReason = null;
+		
         op.impl({
             read: a => paramRead(a),
             write: (a, v) => paramWrite(a, v),
@@ -167,9 +165,7 @@ function iterateIntecodeMachine(state, logSteps = false)
 
         if (nextInstructionPointer !== null)
             instructionPointer = nextInstructionPointer;
-        else if (haltCode === 0)
+        else if (state.haltCode === 0)
             instructionPointer += 1 + op.paramCount;
-	}
-	while (false);
 	}
 }
