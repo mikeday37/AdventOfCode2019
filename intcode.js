@@ -7,7 +7,8 @@ function getIntcodeService()
 	let knownOperations = getKnownIntcodeOperations();
 	return {
 		parse: (programString) => programString.trim().split(',').map(v=>Number(v.trim())),
-		run: (initialMemory, input = [], logSteps = false) => runIntcodeProgram(knownOperations, initialMemory, input, logSteps)
+		run: (initialMemory, input = [], logSteps = false) => runIntcodeProgram(knownOperations, initialMemory, input, logSteps),
+		init: (ops, initialMemory, io) => initializeIntcodeMachine(ops, initialMemory, io)
 	};
 }
 
@@ -35,16 +36,78 @@ function getKnownIntcodeOperations()
     return ops;
 }
 
+function initializeIntcodeMachine(ops, initialMemory, io)
+{
+	let state = {
+		ops,
+		memory: [...initialMemory],
+		io: { // we're doing this instead of just "io," to force the structure
+			hasInput: io.hasInput,
+			readInput: io.readInput,
+			writeOutput: io.writeOutput
+		},
+		instructionPointer: 0,
+		haltCode: 0,
+		haltReason: null,
+		HALTCODE_NORMAL_TERMINATION: 1,
+		HALTCODE_WAITING_FOR_INPUT: -71
+	};
+	state.step = () => iterateIntecodeMachine(state);
+	return state;
+}
+
 function runIntcodeProgram(ops, initialMemory, input = [], logSteps = false)
 {
-    let memory = [...initialMemory];
-    let output = [];
-    let inputPointer = 0;
-    let instructionPointer = 0;
+	let inputPointer = 0;
+	let output = [];
+	let state = initializeIntcodeMachine(ops, initialMemory, {
+		hasInput: () => true,
+		readInput: () => {
+			if (inputPointer >= input.length)
+				throw Error(`static input length exceeded at inputPointer = ${inputPointer}`);
+			else
+				return input[inputPointer++];
+		},
+		writeOutput: v => output.push(v)
+	});
+
+	while (!state.haltCode)
+		state.step();
+
+    return {
+        memory: state.memory,
+        output,
+        instructionPointer: state.instructionPointer,
+        inputPointer,
+        haltCode: state.haltCode,
+        haltReason: state.haltReason
+	};
+}
+
+function iterateIntecodeMachine(state, logSteps = false)
+{
+	let ops = state.ops;
+	let memory = state.memory;
+    let instructionPointer = state.instructionPointer;
     let haltCode = 0;
-    let haltReason = null;
-    const doHalt = (code, reason) => [haltCode, haltReason] = [code, reason];
-    while (haltCode === 0)
+	let haltReason = null;
+
+	const doHalt = (code, reason) => [haltCode, haltReason] = [code, reason];
+
+	// TODO: add check, only allow stepping if haltCode is zero or awaiting input
+
+	try {
+		inner();
+	} catch (error) {
+		doHalt(-99, `exception, message = ${error.message}`);
+	}
+
+	state.instructionPointer = instructionPointer;
+	state.haltCode = haltCode;
+	state.haltReason = haltReason;
+
+	function inner() { // I did it this strange way temporarily to minimize the impact of the day 7 refactor
+	do
     {
         if (instructionPointer < 0)
         {
@@ -91,23 +154,22 @@ function runIntcodeProgram(ops, initialMemory, input = [], logSteps = false)
         op.impl({
             read: a => paramRead(a),
             write: (a, v) => paramWrite(a, v),
-            ioRead: () => {assert(inputPointer < input.length, 'input overrun'); return input[inputPointer++];},
-            ioWrite: v => output.push(v),
+            ioRead: () => {
+				if (state.io.hasInput())
+					return state.io.readInput();
+				else
+					doHalt(state.HALTCODE_WAITING_FOR_INPUT, 'waiting for input');
+			},
+            ioWrite: v => state.io.writeOutput(v),
             jump: a => nextInstructionPointer = paramRead(a),
-            halt: () => doHalt(1, 'normal termination')
+            halt: () => doHalt(state.HALTCODE_NORMAL_TERMINATION, 'normal termination')
         });
 
         if (nextInstructionPointer !== null)
             instructionPointer = nextInstructionPointer;
         else if (haltCode === 0)
             instructionPointer += 1 + op.paramCount;
-    }
-    return {
-        memory,
-        output,
-        instructionPointer,
-        inputPointer,
-        haltCode,
-        haltReason
-    }
+	}
+	while (false);
+	}
 }
