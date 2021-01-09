@@ -1,3 +1,4 @@
+'use strict';
 const { assert } = require('console');
 
 exports.getIntcodeService = getIntcodeService;
@@ -148,7 +149,7 @@ function iterateIntecodeMachine(state, logSteps = false)
 
 		state.haltCode = 0;
 		state.haltReason = null;
-		
+
         op.impl({
             read: a => paramRead(a),
             write: (a, v) => paramWrite(a, v),

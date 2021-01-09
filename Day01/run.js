@@ -1,3 +1,4 @@
+'use strict';
 const { readFileSync } = require('fs');
 const common = require('../common.js');
 

@@ -1,5 +1,4 @@
-
-
+'use strict';
 const { assert } = require('console');
 const { readdirSync } = require('fs');
 const { cwd } = require('process');

@@ -1,3 +1,4 @@
+'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const common = require('../common.js');

@@ -1,3 +1,4 @@
+'use strict';
 const { hrtime } = require('process');
 
 exports.__getResultsTracker = __getResultsTracker;
