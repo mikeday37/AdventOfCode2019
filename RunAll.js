@@ -1,50 +1,62 @@
 'use strict';
 const { assert } = require('console');
 const { readdirSync } = require('fs');
-const { cwd } = require('process');
+const { cwd, chdir } = require('process');
 const common = require('./common.js');
 
-common.__getResultsTracker().runFast = true;
+(function(){
 
-const maxDay = readdirSync(cwd(), {withFileTypes: true})
-	.filter(entry => entry.isDirectory() && entry.name.match(/Day\d+/))
-	.length;
-for (let day = 1; day <= maxDay; day++)
-{
-	preDay(day);
-	let dir = `./Day${String(day).padStart(2, '0')}/`
-	process.chdir(dir);
-	let path = `${dir}run.js`;
-	require(path);
-	process.chdir('../');
-}
+	// remember where we started
+	const startDir = cwd();
 
-postAll();
+	// determine the last day started/completed
+	const maxDay = readdirSync(startDir, {withFileTypes: true})
+		.filter(entry => entry.isDirectory() && entry.name.match(/Day\d+/))
+		.length;
+	
+	// since we're doing all days, we're mainly interested in verifying correctness,
+	// not thorough benchmarking, so lets set the runFast flag to speed through it
+	common.__getResultsTracker().runFast = true;
 
-function preDay(day)
-{
-	console.log(`\n\n====================== Day ${day} ======================\n`);
-}
+	// run each day
+	for (let day = 1; day <= maxDay; day++)
+	{
+		// log a separator for the day
+		console.log(`\n\n====================== Day ${day} ======================\n`);
 
-function postAll()
-{
+		// change to the day's directory
+		let dir = `./Day${String(day).padStart(2, '0')}/`
+		chdir(dir);
+
+		// require the day's script to run it
+		let path = `${dir}run.js`;
+		require(path);
+
+		// change dir back to where we started
+		chdir(startDir);
+	}
+
+	// log a separator for the results
 	console.log(`\n\n===================================================\n\nResults:`);
 
-	const t = common.__getResultsTracker();
+	// get the results
+	const resultsTracker = common.__getResultsTracker();
 
-	// determine whether each day-part answer is CORRECT, WRONG, new, or N/A (only day 25 part 2 is N/A)
+	// setup the day-part classifications we care about:
 	const classifications = [
-		'    new    ',
-		'  CORRECT  ',
-		'!! WRONG !!'
+		'    new    ',  // new means I don't yet know the official answer for my input
+		'  CORRECT  ',  // the official answer is known and the just-ran results match
+		'!! WRONG !!'   // the official answer is known but the results do not match
 	];
+
+	// function to classify a day-part's result
 	function classify(day, part)
 	{
 		if (day === 25 && part === 2)
 			return null; // n/a
 		else
 		{
-			const d = t.days.get(day);
+			const d = resultsTracker.days.get(day);
 			const [answer, expected] = [d.answers[part-1], d.expectedAnswers[part-1]];
 			if (expected === null)
 				return classifications[0];
@@ -52,6 +64,8 @@ function postAll()
 				return classifications[answer == expected ? 1 : 2]; // intentional ==
 		}
 	}
+
+	// classify all results in a map: 'day-part' -> classification
 	const results = new Map();
 	for (let day = 1; day <= maxDay; day++)
 		for (let part = 1; part <= 2; part++)
@@ -61,7 +75,7 @@ function postAll()
 	console.log('\t           Part 1:         Part 2:');
 	console.log('\t         +---------------+---------------+');
 	for (let day = 1; day <= maxDay; day++)
-		console.log(`\tDay ${String(day).padStart(2,'0')}   |  ${results.get(`${day}-1`)}  |  ${results.get(`${day}-2`) || '   (n/a)   '}  |   ${t.days.get(day).dayName}`);
+		console.log(`\tDay ${String(day).padStart(2,'0')}   |  ${results.get(`${day}-1`)}  |  ${results.get(`${day}-2`) || '   (n/a)   '}  |   ${resultsTracker.days.get(day).dayName}`);
 	console.log('\t         +---------------+---------------+');
 
 	// tally the classifications
@@ -77,7 +91,7 @@ function postAll()
 		}
 	});
 
-	// log the tally
+	// log the tally, assert if not all correct for high visibility
 	console.log('\nSummary:');
 	const allCorrect = tally.get(classifications[1]) === totalRelevant;
 	assert(allCorrect, 'at least one day-part is incorrect or new!');
@@ -91,4 +105,4 @@ function postAll()
 				continue;
 			console.log(`\t${c} = ${n}`);
 		}
-}
+})();

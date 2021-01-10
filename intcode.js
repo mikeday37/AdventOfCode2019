@@ -93,8 +93,6 @@ function iterateIntecodeMachine(state, logSteps = false)
 
 	const doHalt = (code, reason) => [state.haltCode, state.haltReason] = [code, reason];
 
-	// TODO: add check, only allow stepping if haltCode is zero or awaiting input
-
 	try {
 		inner();
 	} catch (error) {

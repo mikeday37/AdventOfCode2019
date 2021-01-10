@@ -1,43 +1,24 @@
 'use strict';
 const { hrtime } = require('process');
 
-exports.__getResultsTracker = __getResultsTracker;
+// exports for general use
 exports.day = day;
 exports.benchmark = benchmark;
 exports.addExtensions = addExtensions;
 
+// special export to get results of all days for the RunAll script
+exports.__getResultsTracker = () => __resultsTracker;
 
-if (typeof __resultsTracker === 'undefined')
-{
-    var __resultsTracker = __createResultsTracker();
-}
+// hoist a results tracker if one doesn't already exist -- we intend this to be global across all days, whether run singly or not
+if (typeof __resultsTracker === 'undefined') {var __resultsTracker = __createResultsTracker();}
 
-function __createResultsTracker(tracker = {})
-{
-    tracker.days = new Map();
-    tracker.currentDay = null;
-    tracker.runFast = false;
-    tracker.startDay = (dayNumber, dayName, expectedPart1Answer, expectedPart2Answer) => {
-        tracker.days.set(dayNumber, {
-            dayNumber,
-            dayName,
-            expectedAnswers: [expectedPart1Answer, expectedPart2Answer],
-            answers: [null, null]
-        });
-        tracker.currentDay = dayNumber;
-    }
-    
-    return tracker;
-}
-
-function __getResultsTracker() {return __resultsTracker;}
-
+// start each day's run script with a call to this method, omitting the answers until they are known
 function day(dayNumber, dayName, expectedPart1Answer = null, expectedPart2Answer = null)
 {
     __resultsTracker.startDay(dayNumber, dayName, expectedPart1Answer, expectedPart2Answer);
 }
 
-// use like this:
+// wrap the code that get's the part ansewrs like this:
 //
 // common.benchmark(time =>{
 //     const result = time('label', ()=>doStuffThatNeedsToBeTimed()); // time() returns whatever the inner function returns
@@ -129,6 +110,7 @@ function benchmark(body, maxRuns = null)
     console.log('--- end ---');
 }
 
+// add my convenient "extension methods" if desired
 function addExtensions()
 {
     // decided to play with technique for extending existing types "safely."
@@ -160,4 +142,24 @@ function addExtensions()
         writable: true,
         configurable: true
     });
+}
+
+// creates the tracker, used only by this script
+function __createResultsTracker()
+{
+    let tracker = {
+        days: new Map(),
+        currentDay: null,
+        runFast: false,
+        startDay: (dayNumber, dayName, expectedPart1Answer, expectedPart2Answer) => {
+            tracker.days.set(dayNumber, {
+                dayNumber,
+                dayName,
+                expectedAnswers: [expectedPart1Answer, expectedPart2Answer],
+                answers: [null, null]
+            });
+            tracker.currentDay = dayNumber;
+        }
+    };
+    return tracker;
 }
