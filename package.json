@@ -17,5 +17,7 @@
   },
   "homepage": "https://github.com/mikeday37/AdventOfCode2019#readme",
   "dependencies": {
+    "canvas": "^2.6.1",
+    "tesseract.js": "^2.1.4"
   }
 }
