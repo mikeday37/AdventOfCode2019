@@ -30,7 +30,7 @@ function benchmark(body, maxRuns = null)
         maxSeconds = 1,
         runLimit = __resultsTracker.runFast
             ? 1
-            : maxRuns || 1000;
+            : maxRuns || 100;
 
     let timings = new Map();
     function time(label, action)

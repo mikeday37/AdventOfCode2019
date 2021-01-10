@@ -14,9 +14,12 @@ const common = require('./common.js');
 		.filter(entry => entry.isDirectory() && entry.name.match(/Day\d+/))
 		.length;
 	
+	// get the results tracker
+	const resultsTracker = common.__getResultsTracker();
+
 	// since we're doing all days, we're mainly interested in verifying correctness,
 	// not thorough benchmarking, so lets set the runFast flag to speed through it
-	common.__getResultsTracker().runFast = true;
+	resultsTracker.runFast = true;
 
 	// run each day
 	for (let day = 1; day <= maxDay; day++)
@@ -38,9 +41,6 @@ const common = require('./common.js');
 
 	// log a separator for the results
 	console.log(`\n\n===================================================\n\nResults:`);
-
-	// get the results
-	const resultsTracker = common.__getResultsTracker();
 
 	// setup the day-part classifications we care about:
 	const classifications = [
