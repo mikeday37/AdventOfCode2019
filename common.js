@@ -18,7 +18,7 @@ function day(dayNumber, dayName, expectedPart1Answer = null, expectedPart2Answer
     __resultsTracker.startDay(dayNumber, dayName, expectedPart1Answer, expectedPart2Answer);
 }
 
-// wrap the code that get's the part ansewrs like this:
+// wrap the code that gets the part answers like this:
 //
 // common.benchmark(time =>{
 //     const result = time('label', ()=>doStuffThatNeedsToBeTimed()); // time() returns whatever the inner function returns
