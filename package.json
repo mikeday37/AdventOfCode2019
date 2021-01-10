@@ -1,0 +1,21 @@
+{
+  "name": "mikeday37-adventofcode2019",
+  "version": "1.0.0",
+  "description": "Going back in time with JavaScript/TypeScript. :)",
+  "main": "RunAll.js",
+  "scripts": {
+    "test": "node RunAll.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikeday37/AdventOfCode2019.git"
+  },
+  "author": "Mike Day",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mikeday37/AdventOfCode2019/issues"
+  },
+  "homepage": "https://github.com/mikeday37/AdventOfCode2019#readme",
+  "dependencies": {
+  }
+}
