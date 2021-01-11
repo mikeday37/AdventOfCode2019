@@ -4,22 +4,25 @@ const { readFileSync } = require('fs');
 const common = require('../common.js');
 const { getIntcodeService } = require('../intcode.js');
 
+const manager = require('../dayManager.js');
+
 (function(){
-    common.day(7, 'Amplification Circuit',
+    manager.day(7, 'Amplification Circuit',
+    [
         255840,
         84088865
-    );
-    
-    common.addExtensions();
+    ],
+    (api) =>
+    {
+        common.addExtensions();
 
-    common.benchmark((time, doPart) => {
-        const intcode = time('get service', ()=>getIntcodeService());
-        const program = time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
+        const intcode = api.time('get service', ()=>getIntcodeService());
+        const program = api.time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
 
         checkExamples(intcode);
 
-        doPart(1, () => getMaxThrusterSignal1(intcode, program));
-        doPart(2, () => getMaxThrusterSignal2(intcode, program));
+        api.doPart(1, () => getMaxThrusterSignal1(intcode, program));
+        api.doPart(2, () => getMaxThrusterSignal2(intcode, program));
     });
 })();
 

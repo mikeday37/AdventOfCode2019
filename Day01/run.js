@@ -1,21 +1,21 @@
 'use strict';
 const { readFileSync } = require('fs');
-const common = require('../common.js');
+const manager = require('../dayManager.js');
 
 (function(){
-    common.day(1, 'The Tyranny of the Rocket Equation',
+    manager.day(1, 'The Tyranny of the Rocket Equation',
+    [
         3210097,
         4812287
-    );
-
-    const data = readFileSync('./input.txt', 'utf-8');
-    const lines = data.split(/\r?\n/);
-
-    common.benchmark((time, doPart) =>
+    ],
+    (api) =>
     {
-        doPart(1, ()=>getPart(lines, getFuel));
-        doPart(2, ()=>getPart(lines, getFuel2));
-    })
+        const data = readFileSync('./input.txt', 'utf-8');
+        const lines = data.split(/\r?\n/);
+
+        api.doPart(1, ()=>getPart(lines, getFuel));
+        api.doPart(2, ()=>getPart(lines, getFuel2));
+    });
 })();
 
 function getFuel(input){

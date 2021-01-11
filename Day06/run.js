@@ -1,21 +1,22 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const common = require('../common.js');
+const manager = require('../dayManager.js');
 
 (function(){
-    common.day(6, 'Universal Orbit Map',
+    manager.day(6, 'Universal Orbit Map',
+    [
         308790,
         472
-    );
-    
-    checkExamples();
+    ],
+    (api) =>
+    {
+        checkExamples();
 
-    common.benchmark((time, doPart) => {
-        const tree = time('read and parse', ()=>parseOrbits(readFileSync('./input.txt', 'utf-8')));
+        const tree = api.time('read and parse', ()=>parseOrbits(readFileSync('./input.txt', 'utf-8')));
 
-        doPart(1, ()=>getTotalOrbits(tree));
-        doPart(2, ()=>getTransferCount(tree));
+        api.doPart(1, ()=>getTotalOrbits(tree));
+        api.doPart(2, ()=>getTransferCount(tree));
     });
 })();
 

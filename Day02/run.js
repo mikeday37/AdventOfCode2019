@@ -15,20 +15,21 @@ code and data share the same memory
 */
 
 const { readFileSync } = require('fs');
-const common = require('../common.js');
+const manager = require('../dayManager.js');
 
 (function(){
-    common.day(2, '1202 Program Alarm',
+    manager.day(2, '1202 Program Alarm',
+    [
         4462686,
         5936
-    );
+    ],
+    (api) =>
+    {
+        const data = api.time('read input', ()=>readFileSync('./input.txt', 'utf-8'));
+        const originalMemory = api.time('parse input', ()=>data.split(/\r?\n/)[0].split(',').map(v=>Number(v)));
 
-    common.benchmark((time, doPart) => {
-        const data = time('read input', ()=>readFileSync('./input.txt', 'utf-8'));
-        const originalMemory = time('parse input', ()=>data.split(/\r?\n/)[0].split(',').map(v=>Number(v)));
-
-        doPart(1, ()=>intcode(originalMemory, 12, 2));
-        doPart(2, ()=>findNounVerb(originalMemory, 19690720));
+        api.doPart(1, ()=>intcode(originalMemory, 12, 2));
+        api.doPart(2, ()=>findNounVerb(originalMemory, 19690720));
     });
 })();
 

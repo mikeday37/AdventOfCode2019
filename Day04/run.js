@@ -1,24 +1,26 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
+const manager = require('../dayManager.js');
 const common = require('../common.js');
 
 (function(){
-    common.day(4, 'Secure Container',
+    manager.day(4, 'Secure Container',
+    [
         889,
         589
-    );    
-    common.addExtensions();
-
-    doTests();
-
-    const range = readFileSync('./input.txt', 'utf-8').trim().split('-').map(x => Number(x.trim()));
-    const [min, max] = [range[0], range[1]]
-
-    common.benchmark((time, doPart) =>
+    ],
+    (api) =>
     {
-        doPart(1, ()=>getPart(min, max, 1));
-        doPart(2, ()=>getPart(min, max, 2));
+        common.addExtensions();
+
+        doTests();
+
+        const range = readFileSync('./input.txt', 'utf-8').trim().split('-').map(x => Number(x.trim()));
+        const [min, max] = [range[0], range[1]]
+
+        api.doPart(1, ()=>getPart(min, max, 1));
+        api.doPart(2, ()=>getPart(min, max, 2));
     });
 })();
 

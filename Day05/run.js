@@ -1,24 +1,25 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const common = require('../common.js');
+const manager = require('../dayManager.js');
 const { getIntcodeService } = require('../intcode.js');
 
 (function(){
-    common.day(5, 'Sunny with a Chance of Asteroids',
+    manager.day(5, 'Sunny with a Chance of Asteroids',
+    [
         15386262,
         10376124
-    );
+    ],
+    (api) =>
+    {
+        const intcode = getIntcodeService();
 
-    const intcode = getIntcodeService();
+        checkExamples(intcode);
 
-    checkExamples(intcode);
-
-    common.benchmark((time, doPart) => {
         const program = intcode.parse(readFileSync('./input.txt', 'utf-8').trim());
         
-        doPart(1, ()=>getPart1(intcode, program));
-        doPart(2, ()=>getPart2(intcode, program));
+        api.doPart(1, ()=>getPart1(intcode, program));
+        api.doPart(2, ()=>getPart2(intcode, program));
     });
 })();
 

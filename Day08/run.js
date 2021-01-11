@@ -1,22 +1,22 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const common = require('../common.js');
+const tesseract = require('tesseract.js')
+const manager = require('../dayManager.js');
 
 (function(){
-    common.day(8, 'Space Image Format',
-        828,
+    manager.dayAsync(8, 'Space Image Format',
+    [
+        828, 
         'ZLBJF'
-    );
-    
-    //common.addExtensions();
-
-    common.benchmark((time, doPart) => {
+    ],
+    async (api) =>
+    {
         checkExamples();
 
         let layers;
 
-        doPart(1, () => {
+        api.doPart(1, () => {
             const rawInput = readFileSync('./input.txt', 'utf-8');
             layers = parseLayers(rawInput, 25, 6);
             const layerWithFewest0 = layers
@@ -29,11 +29,16 @@ const common = require('../common.js');
 
         let image;
 
-        doPart(2, () => {
+        await api.doPartAsync(2, async () => {
             image = parseImage(layers);
-            const message = // I don't see a reasonably better way short of knowing the font or using OCR...
-                image.join(',') === 'XXXX X    XXX    XX XXXX ,   X X    X  X    X X    ,  X  X    XXX     X XXX  , X   X    X  X    X X    ,X    X    X  X X  X X    ,XXXX XXXX XXX   XX  X    '
-                ? 'ZLBJF' : '???';
+            let message;
+            if (manager.__getDayTracker().runFast)
+                message = // I don't see a reasonably better way short of knowing the font or using OCR...
+                    image.join(',') === 'XXXX X    XXX    XX XXXX ,   X X    X  X    X X    ,  X  X    XXX     X XXX  , X   X    X  X    X X    ,X    X    X  X X  X X    ,XXXX XXXX XXX   XX  X    '
+                    ? 'ZLBJF' : '???';
+            else
+                message = await recognizeImageTextAsync(image);
+
             return message;
         });
 
@@ -43,6 +48,25 @@ const common = require('../common.js');
         console.log('[end image]')
     });
 })();
+
+async function recognizeImageTextAsync(image)
+{
+    let physicalImagePath = 'c:/temp/test2.png';
+    let text = await recognizePhysicalImageTextAsync(physicalImagePath);
+    return text;
+}
+
+async function recognizePhysicalImageTextAsync(imagePath)
+{
+    const worker = tesseract.createWorker({logger: x => console.log(x)});
+    const language = 'eng';
+    await worker.load();
+    await worker.loadLanguage(language);
+    await worker.initialize(language);
+    const {data: {text}} = await worker.recognize(imagePath) ;
+    await worker.terminate();
+    return text;
+}
 
 function checkExamples()
 {
