@@ -63,13 +63,13 @@ function createDayTracker()
 
 function makeHelper(day)
 {
-	let api = {};
+	let api = {runFast: dayTracker.runFast};
 	let helper = {api};
 	let timings = new Map();
 
     const 
         maxSeconds = 1,
-        runLimit = dayTracker.runFast
+        runLimit = api.runFast
             ? 1
             : day.maxRuns || 100;	
 

@@ -32,8 +32,8 @@ const manager = require('../dayManager.js');
         await api.doPartAsync(2, async () => {
             image = parseImage(layers);
             let message;
-            if (manager.__getDayTracker().runFast)
-                message = // I don't see a reasonably better way short of knowing the font or using OCR...
+            if (api.runFast)
+                message = // speedy skip of the OCR
                     image.join(',') === 'XXXX X    XXX    XX XXXX ,   X X    X  X    X X    ,  X  X    XXX     X XXX  , X   X    X  X    X X    ,X    X    X  X X  X X    ,XXXX XXXX XXX   XX  X    '
                     ? 'ZLBJF' : '???';
             else
