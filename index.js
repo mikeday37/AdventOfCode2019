@@ -30,7 +30,7 @@ async function runAsRequested()
 	// regex for expected directory names for each day:
 	const daySubDirRegex = /Day\d+/;
 
-	/* first determine if we're running a single day (and which) or all, via:
+	/* determine if we're running a single day (and which) or all, via:
 
 		process.argv - array with our arguments and additional info:
 		[0] = node.exe
@@ -121,7 +121,7 @@ async function runAsRequested()
 	if (runSingle)
 		return;
 
-	// log a separator for the results
+	// otherwise, log a separator for the results
 	console.log(`\n\n===================================================\n\nResults:`);
 
 	// setup the day-part classifications we care about:

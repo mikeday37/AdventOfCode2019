@@ -1,8 +1,11 @@
 'use strict';
 const { assert } = require('console');
-const { readFileSync } = require('fs');
+const { readFileSync, writeFileSync, mkdirSync, existsSync } = require('fs');
+const path = require('path');
 const tesseract = require('tesseract.js')
+const { createCanvas } = require('canvas');
 const manager = require('../dayManager.js');
+const { hqx } = require('hqx-node-js');
 
 (function(){
     manager.dayAsync(8, 'Space Image Format',
@@ -51,9 +54,68 @@ const manager = require('../dayManager.js');
 
 async function recognizeImageTextAsync(image)
 {
-    let physicalImagePath = 'c:/temp/test2.png';
+    let canvas = createCanvasFromImage(image);
+    let finalCanvas = upscaleCanvas(canvas);
+    let physicalImagePath = saveCanvas(finalCanvas, '-final-ocr-input');
     let text = await recognizePhysicalImageTextAsync(physicalImagePath);
-    return text;
+    return text.trim();
+}
+
+function upscaleCanvas(originalCanvas)
+{
+    return hqx(originalCanvas, 4);
+}
+
+function addBorder(originalImage, value, thickness)
+{
+    let image = [...originalImage];
+    let originalWidth = image[0].length;
+    let horizontal = value[0].repeat(originalWidth + 2 * thickness);
+    let vertical = value[0].repeat(thickness);
+    for (let i = 0; i < image.length; i++)
+        image[i] = vertical + image[i] + vertical;
+    for (let i = 0; i < thickness; i++)
+    {
+        image.unshift(horizontal);
+        image.push(horizontal);
+    }
+    return image;
+}
+
+function createCanvasFromImage(rawImage)
+{
+    let image = addBorder(rawImage, ' ', 2);
+    const width = image[0].length;
+    const height = image.length;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, width, height);
+    let i = 0;
+    for (let row of image)
+        for (let pixel of row)
+        {
+            let rgb = pixel === 'X' ? 0 : 255;
+            imageData.data[i++] = rgb;
+            imageData.data[i++] = rgb;
+            imageData.data[i++] = rgb;
+            imageData.data[i++] = 255;
+        }
+    assert(i === imageData.data.length, 'pixel write length mismatch');
+    ctx.putImageData(imageData, 0, 0);
+    saveCanvas(canvas, '-original');
+    let upscaled = canvas;//hqx(canvas, 3);
+    return upscaled;
+}
+
+function saveCanvas(canvas, suffix = '')
+{
+    const dir = path.resolve('temp');
+    if (!existsSync(dir))
+        mkdirSync(dir);
+    const filePath = path.resolve(dir, `canvas${suffix}.png`);
+    const buffer = canvas.toBuffer('image/png');
+    writeFileSync(filePath, buffer);
+    return filePath;
 }
 
 async function recognizePhysicalImageTextAsync(imagePath)

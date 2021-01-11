@@ -1,6 +1,9 @@
 # adhoc stuff is currently not to be part of the repo
 adhoc.js
 
+# temp folder
+temp/
+
 # Logs
 logs
 *.log
