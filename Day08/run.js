@@ -55,15 +55,11 @@ const { hqx } = require('hqx-node-js');
 async function recognizeImageTextAsync(image)
 {
     let canvas = createCanvasFromImage(image);
-    let finalCanvas = upscaleCanvas(canvas);
+    saveCanvas(canvas, '-original');
+    let finalCanvas = hqx(canvas, 4);
     let physicalImagePath = saveCanvas(finalCanvas, '-final-ocr-input');
     let text = await recognizePhysicalImageTextAsync(physicalImagePath);
     return text.trim();
-}
-
-function upscaleCanvas(originalCanvas)
-{
-    return hqx(originalCanvas, 4);
 }
 
 function addBorder(originalImage, value, thickness)
@@ -102,9 +98,7 @@ function createCanvasFromImage(rawImage)
         }
     assert(i === imageData.data.length, 'pixel write length mismatch');
     ctx.putImageData(imageData, 0, 0);
-    saveCanvas(canvas, '-original');
-    let upscaled = canvas;//hqx(canvas, 3);
-    return upscaled;
+    return canvas;
 }
 
 function saveCanvas(canvas, suffix = '')
