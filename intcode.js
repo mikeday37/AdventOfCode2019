@@ -32,6 +32,8 @@ function getKnownIntcodeOperations()
     operation( 7,   'lt',    3,  c => c.write(3, c.read(1)  <  c.read(2) ? 1 : 0) );
     operation( 8,   'eq',    3,  c => c.write(3, c.read(1) === c.read(2) ? 1 : 0) );
 
+    operation( 9,   'rel',   1,  c => c.addToRelativeBase(c.read(1))             );
+
     operation( 99,  'halt',  0,  c => c.halt()                                    );
 
     return ops;
@@ -47,9 +49,12 @@ function initializeIntcodeMachine(ops, initialMemory, io)
 			readInput: io.readInput,
 			writeOutput: io.writeOutput
 		},
-		instructionPointer: 0,
+        instructionPointer: 0,
+        relativeBase: 0,
 		haltCode: 0,
-		haltReason: null,
+        haltReason: null,
+        
+        // TODO: this is an akward place to put these constants -- review best js practice and fix
 		HALTCODE_NORMAL_TERMINATION: 1,
 		HALTCODE_WAITING_FOR_INPUT: -71
 	};
@@ -135,8 +140,44 @@ function iterateIntecodeMachine(state, logSteps = false)
         const parameterModes = [...modeString].reverse().map(x => Number(x));
         const parameterValues = memory.slice(instructionPointer + 1, instructionPointer + 1 + op.paramCount);
 
-        const paramRead = a => parameterModes[a - 1] == 0 ? memory[parameterValues[a - 1]] : parameterValues[a - 1];
-        const paramWrite = (a, v) => {assert(parameterModes[a - 1] == 0); memory[parameterValues[a - 1]] = v;}
+        function resolveMemoryAccess(address, actionOnAddress)
+        {
+            if (address < 0)
+                throw Error(`address negative: ${address}`);
+            
+            if (address >= memory.length)
+            {
+                const sanityAddressLimit = 100_000_000; // 100 mB
+                if (address > sanityAddressLimit)
+                    throw Error(`attempted to access memory at ${address} which is beyond sanity limit ${sanityAddressLimit}`);
+                const oldLength = memory.length;
+                memory.length = address + 1;
+                memory.fill(0, oldLength, memory.length);
+            }
+
+            return actionOnAddress(address);
+        }
+        function paramRead(a)
+        {
+            const mode = parameterModes[a - 1];
+            switch (mode) 
+            {
+                case 0: return resolveMemoryAccess(parameterValues[a - 1],                      ea => memory[ea]);
+                case 1: return parameterValues[a - 1];
+                case 2: return resolveMemoryAccess(parameterValues[a - 1] + state.relativeBase, ea => memory[ea]);
+                default: throw Error(`bad parameter mode ${mode} during read`);
+            }
+        }
+        function paramWrite(a, v)
+        {
+            const mode = parameterModes[a - 1];
+            switch (mode) 
+            {
+                case 0: resolveMemoryAccess(parameterValues[a - 1],                      ea => memory[ea] = v); break;
+                case 2: resolveMemoryAccess(parameterValues[a - 1] + state.relativeBase, ea => memory[ea] = v); break;
+                default: throw Error(`bad parameter mode ${mode} during write`);
+            }
+        }
         let nextInstructionPointer = null;
 
         if (logSteps)
@@ -159,6 +200,7 @@ function iterateIntecodeMachine(state, logSteps = false)
 			},
             ioWrite: v => state.io.writeOutput(v),
             jump: a => nextInstructionPointer = paramRead(a),
+            addToRelativeBase: v => state.relativeBase += v,
             halt: () => doHalt(state.HALTCODE_NORMAL_TERMINATION, 'normal termination')
         });
 
