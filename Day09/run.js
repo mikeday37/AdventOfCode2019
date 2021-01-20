@@ -1,7 +1,6 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const common = require('../common.js');
 const { getIntcodeService } = require('../intcode.js');
 
 const manager = require('../dayManager.js');
@@ -14,8 +13,6 @@ const manager = require('../dayManager.js');
     ],
     (api) =>
     {
-        common.addExtensions();
-
         const intcode = api.time('get service', ()=>getIntcodeService());
         const program = api.time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
 
