@@ -46,6 +46,13 @@ async function runAsRequested()
 		if (process.argv.length < 3)
 			return false;
 
+		// if argv[2] is an integer, then we're running manually and that's the explicit day
+		if (String(parseInt(process.argv[2], 10)) === process.argv[2] && !isNaN(parseInt(process.argv[2])))
+		{
+			singleDayNum = Number(process.argv[2]);
+			return true;
+		}
+
 		// see if the filename of the argument is run.js, if not, we're not doing single
 		const arg2Parts = path.parse(path.resolve(process.argv[2]));
 		if (arg2Parts.base !== 'run.js')
@@ -100,9 +107,8 @@ async function runAsRequested()
 	// now actually run each day
 	for (let day of daysToRun.map(x => tracker.days.get(x)))
 	{
-		// log a separator for the day (unless we're doing single)
-		if (!runSingle)
-			console.log(`\n\n====================== Day ${day.dayNum} ======================\n`);
+		// log a separator for the day
+		console.log(`\n\n====================== Day ${day.dayNum} ======================\n`);
 
 		// change to that day's subdir
 		chdir(day.dir);
