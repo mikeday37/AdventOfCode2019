@@ -2,7 +2,7 @@
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const { getIntcodeService } = require('../intcode.js');
-const { recognizeImageTextAsync } = require('../ocr.js');
+const { recognizeImageTextAsync, createCanvasFromImage, saveCanvas } = require('../ocr.js');
 
 const manager = require('../dayManager.js');
 const { isUndefined } = require('util');
@@ -18,7 +18,12 @@ const { isUndefined } = require('util');
         const intcode = api.time('get service', ()=>getIntcodeService());
         const program = api.time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
 
-        api.doPart(1, () => getRobotOutput(intcode, program).paintedPanels.size);
+        let part1Output;
+        api.doPart(1, () => {
+            part1Output = getRobotOutput(intcode, program);
+            return part1Output.paintedPanels.size;
+        });
+        saveCanvas(createCanvasFromImage(createImageFromOutput(part1Output)), '-part1');
 
         await api.doPartAsync(2, async () => await recognizeOutput(getRobotOutput(intcode, program, 1)));
     });
@@ -71,6 +76,12 @@ function newBounds()
 
 async function recognizeOutput(output)
 {
+    const image = createImageFromOutput(output);
+    return await recognizeImageTextAsync(image);
+}
+
+function createImageFromOutput(output)
+{
     const [left, top] = [output.bounds.left, output.bounds.top]
     const width = 1 + output.bounds.right - left;
     const height = 1 + output.bounds.bottom - top;
@@ -79,8 +90,8 @@ async function recognizeOutput(output)
     {
         let line = '';
         for (let x = 0; x < width; x++)
-            line += (output.paintedPanels.get(xyToKey(x, y)) ?? 0) ? 'X' : ' ';
+            line += (output.paintedPanels.get(xyToKey(x + left, y + top)) ?? 0) ? 'X' : ' ';
         image.push(line);
     }
-    return await recognizeImageTextAsync(image);
+    return image;
 }

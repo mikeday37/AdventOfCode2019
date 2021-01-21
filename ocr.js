@@ -7,6 +7,8 @@ const { createCanvas } = require('canvas');
 const { hqx } = require('hqx-node-js');
 
 exports.recognizeImageTextAsync = recognizeImageTextAsync;
+exports.createCanvasFromImage = createCanvasFromImage;
+exports.saveCanvas = saveCanvas;
 
 // image is just an array of strings, where each character is a pixel.  'X' for black, ' ' for white
 // before OCR, a 2-pixel white border is added around the original image, then its upscaled 4x via hqx
