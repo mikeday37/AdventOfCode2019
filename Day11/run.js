@@ -2,10 +2,10 @@
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const { getIntcodeService } = require('../intcode.js');
-const { recognizeImageTextAsync, createCanvasFromImage, saveCanvas } = require('../ocr.js');
+const { recognizePhysicalImageTextAsync, createCanvasFromImage, saveCanvas } = require('../ocr.js');
+const { hqx } = require('hqx-node-js');
 
 const manager = require('../dayManager.js');
-const { isUndefined } = require('util');
 
 (function(){
     manager.dayAsync(11, 'Space Police',
@@ -25,7 +25,15 @@ const { isUndefined } = require('util');
         });
         saveCanvas(createCanvasFromImage(createImageFromOutput(part1Output)), '-part1');
 
-        await api.doPartAsync(2, async () => await recognizeOutput(getRobotOutput(intcode, program, 1)));
+        const part2Output = api.time('part 2: get output', () => getRobotOutput(intcode, program, 1));
+        const image = api.time('part 2: create image', () => createImageFromOutput(part2Output));
+        const canvas = api.time('part 2: create canvas', () => createCanvasFromImage(image));
+        api.time('part 2: save original', () => saveCanvas(canvas, '-original'));
+        const finalCanvas = api.time('part 2: upscale', () => hqx(canvas, 4));
+        const physicalImagePath = api.time('part 2: save upscaled', () => saveCanvas(finalCanvas, '-final-ocr-input'));
+        let part2text;
+        await api.timeAsync('part 2: recognize', async () => part2text = (await recognizePhysicalImageTextAsync(physicalImagePath)).trim());
+        api.notePart(2, part2text);
     });
 })();
 
@@ -40,7 +48,7 @@ function getRobotOutput(intcode, program, initialPanelColor = 0)
     function posKey() {return xyToKey(x,y);}
     if (initialPanelColor)
         paintedPanels.set(posKey(), 1);
-    const dirs = [...'0123'].map(dir => [...'10211201'].slice(2 * dir, 2 * dir + 2).map(x => x - 1)); // :maniacal_laughter:  hey, its AoC, was amused by this approach and had to try it :D
+    const dirs = [ [ 0, -1 ], [ 1, 0 ], [ 0, 1 ], [ -1, 0 ] ]; // auto-generated, see commit 
     let state = intcode.init(program, {
         hasInput: () => true,
         readInput: () => paintedPanels.get(posKey()) ?? 0,
@@ -72,12 +80,6 @@ function newBounds()
         if (bounds.bottom === undefined || y > bounds.bottom) bounds.bottom = y;
     }};
     return bounds;
-}
-
-async function recognizeOutput(output)
-{
-    const image = createImageFromOutput(output);
-    return await recognizeImageTextAsync(image);
 }
 
 function createImageFromOutput(output)

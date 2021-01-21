@@ -6,6 +6,7 @@ const tesseract = require('tesseract.js')
 const { createCanvas } = require('canvas');
 const { hqx } = require('hqx-node-js');
 
+exports.recognizePhysicalImageTextAsync = recognizePhysicalImageTextAsync;
 exports.recognizeImageTextAsync = recognizeImageTextAsync;
 exports.createCanvasFromImage = createCanvasFromImage;
 exports.saveCanvas = saveCanvas;

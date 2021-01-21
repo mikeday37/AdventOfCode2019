@@ -140,8 +140,8 @@ function makeHelper(day)
 			return `${number}${['ns','μs','ms','s'][u]}`;
 		};
 	
-		console.log('                        average:       median:        min:           max:           runs:');
-		console.log('                      +--------------+--------------+--------------+--------------+--------+');
+		console.log('                          average:       median:        min:           max:           runs:');
+		console.log('                        +--------------+--------------+--------------+--------------+--------+');
 	
 		timings.forEach((rawDurations, label) => {
 			const runs = rawDurations.length;
@@ -151,11 +151,11 @@ function makeHelper(day)
 			const average = toPrettyDuration(durations.reduce((a,b) => a + b) / BigInt(runs));
 			const middleIndex = Math.floor(runs / 2);
 			const median = toPrettyDuration((runs % 2 !== 0) ? durations[middleIndex] : ((durations[middleIndex] + durations[middleIndex - 1]) / 2n));
-			console.log(`${label.padStart(20, ' ')}  |${average.padStart(12, ' ')}  |${median.padStart(12, ' ')}  |`
+			console.log(`${label.padStart(22, ' ')}  |${average.padStart(12, ' ')}  |${median.padStart(12, ' ')}  |`
 				+ `${min.padStart(12, ' ')}  |${max.padStart(12, ' ')}  |${String(runs).padStart(6, ' ')}  |`);
 		});
 	
-		console.log('                      +--------------+--------------+--------------+--------------+--------+');
+		console.log('                        +--------------+--------------+--------------+--------------+--------+');
 		console.log('--- end ---');
 	};
 
