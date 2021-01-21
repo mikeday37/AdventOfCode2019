@@ -2,80 +2,85 @@
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const { getIntcodeService } = require('../intcode.js');
+const { recognizeImageTextAsync } = require('../ocr.js');
 
 const manager = require('../dayManager.js');
+const { isUndefined } = require('util');
 
 (function(){
-    manager.day(11, 'Space Police',
+    manager.dayAsync(11, 'Space Police',
     [
-        1909
+        1909,
+        'JUFEKHPH'
     ],
-    (api) =>
+    async (api) =>
     {
         const intcode = api.time('get service', ()=>getIntcodeService());
         const program = api.time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
 
-        let output;
-        api.doPart(1, () => {output = getRobotOutput(intcode, program); return output.size;});
+        api.doPart(1, () => getRobotOutput(intcode, program).paintedPanels.size);
+
+        await api.doPartAsync(2, async () => await recognizeOutput(getRobotOutput(intcode, program, 1)));
     });
 })();
 
+function xyToKey(x,y) {return `${x},${y}`;}
+
 function getRobotOutput(intcode, program, initialPanelColor = 0)
 {
-    function xyToKey(x,y) {return `${x},${y}`;}
-    let writtenPanels = new Map();
+    let paintedPanels = new Map();
     let x = 0, y = 0, dir = 0;
+    let bounds = newBounds();
     let evenOutputIndex = true;
     function posKey() {return xyToKey(x,y);}
     if (initialPanelColor)
-        writtenPanels.set(posKey(), 1);
-    const dirs = [...'0123'].map(dir => [...'10211201'].slice(2 * dir, 2 * dir + 2).map(x => x - 1)); // :maniacal_laughter:
+        paintedPanels.set(posKey(), 1);
+    const dirs = [...'0123'].map(dir => [...'10211201'].slice(2 * dir, 2 * dir + 2).map(x => x - 1)); // :maniacal_laughter:  hey, its AoC, was amused by this approach and had to try it :D
     let state = intcode.init(program, {
         hasInput: () => true,
-        readInput: () => writtenPanels.get(posKey()) ?? 0,
+        readInput: () => paintedPanels.get(posKey()) ?? 0,
         writeOutput: v => {
             if (evenOutputIndex)
-                writtenPanels.set(posKey(), v)
+                paintedPanels.set(posKey(), v)
             else
             {
                 dir = (4 + dir + (v ? 1 : -1)) % 4;
                 const [dx, dy] = dirs[dir]; 
                 x += dx; y += dy;
+                bounds.extend(x, y);
             }
             evenOutputIndex = !evenOutputIndex;
         }
     })
     while (!state.haltCode)
         state.step();
-    return writtenPanels
+    return {paintedPanels, bounds}
 }
 
-/*function checkExamples(intcode)
+function newBounds()
 {
-    let index = 0;
-    let pass = true;
-
-    function check(rawProgram, input = [], expectedOutput = [], logSteps = false) {
-        const checkNum = ++index;
-        const program = intcode.parse(rawProgram);
-        const result = intcode.run(program, input, logSteps);
-        const isValid = result.haltCode === 1 && expectedOutput.join(',') === result.output.join(',');
-        assert(isValid, `example ${checkNum} failed`);
-        if (!isValid)
-            pass = false;
-    }
-
-    doChecks();
-
-    if (pass) console.log(`--- All ${index} Examples PASSED ---`);
-
-    function doChecks()
-    {
-        const example1 = '109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99';
-        check(example1, [], intcode.parse(example1));
-
-        check('1102,34915192,34915192,7,4,7,99,0', [], [1219070632396864]);
-        check('104,1125899906842624,99', [], [1125899906842624]);
-    }
+    let left, right, top, bottom;
+    let bounds = {left, right, top, bottom, extend: (x, y) => {
+        if (bounds.left   === undefined || x < bounds.left)   bounds.left   = x;
+        if (bounds.right  === undefined || x > bounds.right)  bounds.right  = x;
+        if (bounds.top    === undefined || y < bounds.top)    bounds.top    = y;
+        if (bounds.bottom === undefined || y > bounds.bottom) bounds.bottom = y;
+    }};
+    return bounds;
 }
-*/
+
+async function recognizeOutput(output)
+{
+    const [left, top] = [output.bounds.left, output.bounds.top]
+    const width = 1 + output.bounds.right - left;
+    const height = 1 + output.bounds.bottom - top;
+    let image = [];
+    for (let y = 0; y < height; y++)
+    {
+        let line = '';
+        for (let x = 0; x < width; x++)
+            line += (output.paintedPanels.get(xyToKey(x, y)) ?? 0) ? 'X' : ' ';
+        image.push(line);
+    }
+    return await recognizeImageTextAsync(image);
+}
