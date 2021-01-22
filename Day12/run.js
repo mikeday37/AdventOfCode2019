@@ -7,7 +7,8 @@ const manager = require('../dayManager.js');
 (function(){
     manager.dayAsync(12, 'The N-Body Problem',
     [
-        6678
+        6678,
+        496734501382552
     ],
     async (api) =>
     {
@@ -16,6 +17,8 @@ const manager = require('../dayManager.js');
         api.time('check examples', () => checkExamples());
 
         api.doPart(1, () => simulateSystem(input, 1000).getTotalEngery());
+
+        api.doPart(2, () => getSystemPeriod(input));
     });
 })();
 
@@ -40,11 +43,14 @@ function simulateSystem(initialPositions, steps, initialState = null)
     let state = initialState ?? 
     {
         bodies: initialPositions.map(pos => ({
+                initialPos: {x: pos.x, y: pos.y, z: pos.z},
                 pos: {x: pos.x, y: pos.y, z: pos.z},
-                vel: {x: 0, y: 0, z: 0}
+                vel: {x: 0, y: 0, z: 0},
             })),
 
         steps: 0,
+
+        loopSize: {x: null, y: null, z: null},
 
         // helpful toString function for logging and testing
         toString: () => {
@@ -64,8 +70,9 @@ function simulateSystem(initialPositions, steps, initialState = null)
         }
     };
 
-    // iterate for requested number of steps
-    for (let n = 1; n <= steps; n++, state.steps++)
+    // iterate for requested number of steps, or until all loops are detected
+    let allLoopsDetected = false;
+    for (let n = 1; steps !== null ? n <= steps : !allLoopsDetected; n++, state.steps++)
     {
         // gravity - loop through each distinct pair of bodies
         for (let aIndex = 0; aIndex < state.bodies.length; aIndex++)
@@ -84,16 +91,46 @@ function simulateSystem(initialPositions, steps, initialState = null)
             }
 
         // velocity - loop through each body and add velocity to position
+        let allReturned = {x: true, y: true, z: true};
         for (let i = 0; i < state.bodies.length; i++)
-            [...'xyz'].forEach(o => state.bodies[i].pos[o] += state.bodies[i].vel[o]);
+            [...'xyz'].forEach(o => {
+                state.bodies[i].pos[o] += state.bodies[i].vel[o]
+
+                // set all bodies returned flag for this vector component if checking for that, not already set, and vel = 0 at initial position
+                if (steps === null && allReturned[o] && !(state.bodies[i].vel[o] === 0 && state.bodies[i].pos[o] === state.bodies[i].initialPos[o]))
+                    allReturned[o] = false;
+            });
+
+        // if check for loops
+        if (steps === null)
+        {
+            // check each vector component and set all detected false if any component doesn't have loopsize detected
+            allLoopsDetected = true;
+            [...'xyz'].forEach(o => {
+                if (allReturned[o] && state.loopSize[o] === null)
+                    state.loopSize[o] = state.steps + 1; // +1 necessary because state.steps is not increased until end of loop body
+                if (state.loopSize[o] === null)
+                    allLoopsDetected = false;
+            });
+        }
     }
 
     return state;
 }
 
+function getSystemPeriod(initialPositions)
+{
+    const loopDetectedState = simulateSystem(initialPositions, null);
+    const periods = [...'xyz'].map(o => loopDetectedState.loopSize[o]);
+    function gcd(a, b) {return !b ? a : gcd(b, a % b);}
+    function lcm(a, b) {return a * (b / gcd(a, b));}
+    const period = periods.reduce((a,b) => lcm(a,b));
+    return period;
+}
+
 function checkExamples()
 {
-    function doChecks(stepsPerResult, expectedFinalTotalEnergy, rawInput, expectedResults)
+    function doChecks(stepsPerResult, expectedFinalTotalEnergy, expectedPeriod, rawInput, expectedResults)
     {
         const exampleInput = parsePositions(rawInput);
         let state = simulateSystem(exampleInput, 0);
@@ -112,9 +149,12 @@ function checkExamples()
 
         const totalEnergy = state.getTotalEngery();
         assert(totalEnergy === expectedFinalTotalEnergy, `final energy mismatch: expected = ${expectedFinalTotalEnergy}, actual = ${totalEnergy}`);
+
+        const period = getSystemPeriod(exampleInput);
+        assert(period === expectedPeriod, `system period mismatch: expected = ${expectedPeriod}, actual = ${period}`);
     }
 
-    doChecks(1, 179, `
+    doChecks(1, 179, 2772, `
         <x=-1, y=0, z=2>
         <x=2, y=-10, z=-7>
         <x=4, y=-8, z=8>
@@ -176,7 +216,7 @@ function checkExamples()
         pos=<x=  2, y=  0, z=  4>, vel=<x=  1, y= -1, z= -1>
     `]);
 
-    doChecks(10, 1940, `
+    doChecks(10, 1940, 4686774924, `
         <x=-8, y=-10, z=0>
         <x=5, y=5, z=10>
         <x=2, y=-7, z=3>
