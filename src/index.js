@@ -1,9 +1,9 @@
-'use strict';
-const { assert } = require('console');
-const { readdirSync } = require('fs');
-const { cwd, chdir } = require('process');
-const path = require('path');
-const manager = require('./lib/dayManager.js');
+import { assert } from 'console';
+import { readdirSync } from 'fs';
+import { cwd, chdir } from 'process';
+import * as path from 'path';
+import * as manager from './lib/dayManager.js';
+
 
 // main entry point
 (async function(){
@@ -101,7 +101,7 @@ async function runAsRequested()
 		// require script for day
 		const dir = path.resolve(daysDir, `day${String(dayNum).padStart(2, '0')}`);
 		const script = path.resolve(dir, 'run.js');
-		require(script);
+		await import ('file://' + script);
 
 		// store the dir for that day
 		tracker.days.get(dayNum).dir = dir;

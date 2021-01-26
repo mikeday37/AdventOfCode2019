@@ -1,11 +1,5 @@
-'use strict';
-const { hrtime } = require('process');
-
-// exports for general use
-exports.addExtensions = addExtensions;
-
 // add my convenient "extension methods" if desired
-function addExtensions()
+export function addExtensions()
 {
     // decided to play with technique for extending existing types "safely."
     // this seems to be the closest you can get to C# extension methods in JS,

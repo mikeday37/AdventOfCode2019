@@ -1,19 +1,15 @@
-'use strict';
-const { writeFileSync, mkdirSync, existsSync } = require('fs');
-const { assert } = require('console');
-const path = require('path');
-const tesseract = require('tesseract.js')
-const { createCanvas } = require('canvas');
-const { hqx } = require('hqx-node-js');
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { assert } from 'console';
+import { resolve } from 'path';
+import { createWorker } from 'tesseract.js';
+import canvas_pkg from 'canvas';
+const { createCanvas } = canvas_pkg;
+import { hqx } from 'hqx-node-js';
 
-exports.recognizePhysicalImageTextAsync = recognizePhysicalImageTextAsync;
-exports.recognizeImageTextAsync = recognizeImageTextAsync;
-exports.createCanvasFromImage = createCanvasFromImage;
-exports.saveCanvas = saveCanvas;
 
 // image is just an array of strings, where each character is a pixel.  'X' for black, ' ' for white
 // before OCR, a 2-pixel white border is added around the original image, then its upscaled 4x via hqx
-async function recognizeImageTextAsync(image)
+export async function recognizeImageTextAsync(image)
 {
     let canvas = createCanvasFromImage(image);
     saveCanvas(canvas, '-original');
@@ -39,7 +35,7 @@ function addBorder(originalImage, value, thickness)
     return image;
 }
 
-function createCanvasFromImage(rawImage)
+export function createCanvasFromImage(rawImage)
 {
     let image = addBorder(rawImage, ' ', 2);
     const width = image[0].length;
@@ -62,20 +58,20 @@ function createCanvasFromImage(rawImage)
     return canvas;
 }
 
-function saveCanvas(canvas, suffix = '')
+export function saveCanvas(canvas, suffix = '')
 {
-    const dir = path.resolve('temp');
+    const dir = resolve('temp');
     if (!existsSync(dir))
         mkdirSync(dir);
-    const filePath = path.resolve(dir, `canvas${suffix}.png`);
+    const filePath = resolve(dir, `canvas${suffix}.png`);
     const buffer = canvas.toBuffer('image/png');
     writeFileSync(filePath, buffer);
     return filePath;
 }
 
-async function recognizePhysicalImageTextAsync(imagePath)
+export async function recognizePhysicalImageTextAsync(imagePath)
 {
-    const worker = tesseract.createWorker({logger: x => console.log(x)});
+    const worker = createWorker({logger: x => console.log(x)});
     const language = 'eng';
     await worker.load();
     await worker.loadLanguage(language);

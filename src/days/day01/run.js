@@ -1,6 +1,6 @@
-'use strict';
-const { readFileSync } = require('fs');
-const manager = require('../../lib/dayManager.js');
+import { readFileSync } from 'fs';
+import * as manager from '../../lib/dayManager.js';
+
 
 (function(){
     manager.day(1, 'The Tyranny of the Rocket Equation',

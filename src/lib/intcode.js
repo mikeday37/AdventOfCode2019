@@ -1,9 +1,4 @@
-'use strict';
-const { assert } = require('console');
-
-exports.getIntcodeService = getIntcodeService;
-
-function getIntcodeService()
+export function getIntcodeService()
 {
 	let knownOperations = getKnownIntcodeOperations();
 	return {

@@ -1,5 +1,6 @@
 {
   "name": "mikeday37-adventofcode2019",
+  "type": "module",
   "version": "1.0.0",
   "description": "Going back in time with JavaScript/TypeScript. :)",
   "main": "index.js",

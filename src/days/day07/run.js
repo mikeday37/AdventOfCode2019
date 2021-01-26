@@ -1,10 +1,9 @@
-'use strict';
-const { assert } = require('console');
-const { readFileSync } = require('fs');
-const common = require('../../lib/common.js');
-const { getIntcodeService } = require('../../lib/intcode.js');
+import { assert } from 'console';
+import { readFileSync } from 'fs';
+import * as common from '../../lib/common.js';
+import { getIntcodeService } from '../../lib/intcode.js';
+import * as manager from '../../lib/dayManager.js';
 
-const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.day(7, 'Amplification Circuit',

@@ -1,8 +1,7 @@
-'use strict';
-const { assert } = require('console');
-const { readFileSync } = require('fs');
+import { assert } from 'console';
+import { readFileSync } from 'fs';
+import * as manager from '../../lib/dayManager.js';
 
-const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.dayAsync(12, 'The N-Body Problem',

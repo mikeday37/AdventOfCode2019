@@ -1,7 +1,6 @@
-'use strict';
-const { assert } = require('console');
-const { readFileSync } = require('fs');
-const manager = require('../../lib/dayManager.js');
+import { assert } from 'console';
+import { readFileSync } from 'fs';
+import * as manager from '../../lib/dayManager.js';
 
 (function(){
     manager.day(6, 'Universal Orbit Map',

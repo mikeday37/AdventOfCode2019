@@ -1,10 +1,8 @@
-'use strict';
-const { assert } = require('console');
-const { readFileSync } = require('fs');
-const { isNull } = require('util');
-const common = require('../../lib/common.js');
+import { assert } from 'console';
+import { readFileSync } from 'fs';
+import * as common from '../../lib/common.js';
+import * as manager from '../../lib/dayManager.js';
 
-const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.day(10, 'Monitoring Station',

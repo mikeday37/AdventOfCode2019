@@ -1,22 +1,20 @@
-'use strict';
-const { hrtime } = require('process');
+import { hrtime } from 'process';
 
-// special export to get results of all days for the RunAll script
-exports.day = day;
-exports.dayAsync = dayAsync;
-exports.__getDayTracker = () => dayTracker;
+
+// special export to get results of all days
+export function __getDayTracker() {return dayTracker;}
 
 // hoist a results tracker if one doesn't already exist -- we intend this to be global across all days, whether run singly or not
 if (typeof dayTracker === 'undefined') {var dayTracker = createDayTracker();}
 
 // start each day's run script with a call to this method, leaving the answers array empty until they are known
-function day(dayNum, dayName, expectedAnswers, fn, maxRuns = null)
+export function day(dayNum, dayName, expectedAnswers, fn, maxRuns = null)
 {
     dayTracker.addDay(dayNum, dayName, expectedAnswers, fn, maxRuns, false);
 }
 
 // use this instead of day() if the function must be async
-function dayAsync(dayNum, dayName, expectedAnswers, fnAsync, maxRuns = null)
+export function dayAsync(dayNum, dayName, expectedAnswers, fnAsync, maxRuns = null)
 {
     dayTracker.addDay(dayNum, dayName, expectedAnswers, fnAsync, maxRuns, true);
 }

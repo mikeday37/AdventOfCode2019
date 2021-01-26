@@ -1,11 +1,10 @@
-'use strict';
-const { assert } = require('console');
-const { readFileSync } = require('fs');
-const { getIntcodeService } = require('../../lib/intcode.js');
-const { recognizePhysicalImageTextAsync, createCanvasFromImage, saveCanvas } = require('../../lib/ocr.js');
-const { hqx } = require('hqx-node-js');
+import { assert } from 'console';
+import { readFileSync } from 'fs';
+import { getIntcodeService } from '../../lib/intcode.js';
+import { recognizePhysicalImageTextAsync, createCanvasFromImage, saveCanvas } from '../../lib/ocr.js';
+import { hqx } from 'hqx-node-js';
+import * as manager from '../../lib/dayManager.js';
 
-const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.dayAsync(11, 'Space Police',
