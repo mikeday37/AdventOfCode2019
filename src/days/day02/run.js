@@ -15,7 +15,7 @@ code and data share the same memory
 */
 
 const { readFileSync } = require('fs');
-const manager = require('../dayManager.js');
+const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.day(2, '1202 Program Alarm',

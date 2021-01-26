@@ -3,7 +3,7 @@ const { assert } = require('console');
 const { readdirSync } = require('fs');
 const { cwd, chdir } = require('process');
 const path = require('path');
-const manager = require('./dayManager.js');
+const manager = require('./lib/dayManager.js');
 
 // main entry point
 (async function(){
@@ -27,8 +27,11 @@ async function runAsRequested()
 	assert(projectRootDir === cwd(), `not running in expected projectRootDir: ${projectRootDir}\nwill chdir() to it.`);
 	chdir(projectRootDir);
 
+	// path to folder containing day subfolders
+	const daysDir = path.normalize(path.resolve(projectRootDir, 'src', 'days'));
+
 	// regex for expected directory names for each day:
-	const daySubDirRegex = /Day\d+/;
+	const daySubDirRegex = /day\d+/;
 
 	/* determine if we're running a single day (and which) or all, via:
 
@@ -58,11 +61,11 @@ async function runAsRequested()
 		if (arg2Parts.base !== 'run.js')
 			return false;
 
-		// see if the argument path is in a direct Day## dir of project root, if not we're not doing single
+		// see if the argument path is in a direct Day## dir of days dir, if not we're not doing single
 		const arg2DirParts = path.parse(arg2Parts.dir);
 		const parentDirOfDaySubDir = path.normalize(arg2DirParts.dir);
-		const relativeDaySubDirFromProjectRootDir = path.relative(projectRootDir, parentDirOfDaySubDir);
-		const isDaySubDir = relativeDaySubDirFromProjectRootDir.length === 0 && daySubDirRegex.test(arg2DirParts.name);
+		const relativeDaySubDirFromDaysDir = path.relative(daysDir, parentDirOfDaySubDir);
+		const isDaySubDir = relativeDaySubDirFromDaysDir.length === 0 && daySubDirRegex.test(arg2DirParts.name);
 		if (!isDaySubDir)
 			return false;
 
@@ -73,7 +76,7 @@ async function runAsRequested()
 	})();
 
 	// determine the last day started/completed
-	const maxDay = readdirSync(projectRootDir, {withFileTypes: true})
+	const maxDay = readdirSync(daysDir, {withFileTypes: true})
 		.filter(entry => entry.isDirectory() && daySubDirRegex.test(entry.name))
 		.length;
 	
@@ -96,7 +99,7 @@ async function runAsRequested()
 	for (let dayNum of daysToRun)
 	{
 		// require script for day
-		const dir = path.resolve(projectRootDir, `Day${String(dayNum).padStart(2, '0')}`);
+		const dir = path.resolve(daysDir, `day${String(dayNum).padStart(2, '0')}`);
 		const script = path.resolve(dir, 'run.js');
 		require(script);
 

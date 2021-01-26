@@ -1,8 +1,8 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const manager = require('../dayManager.js');
-const { getIntcodeService } = require('../intcode.js');
+const manager = require('../../lib/dayManager.js');
+const { getIntcodeService } = require('../../lib/intcode.js');
 
 (function(){
     manager.day(5, 'Sunny with a Chance of Asteroids',

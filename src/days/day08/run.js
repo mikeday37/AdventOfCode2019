@@ -1,8 +1,8 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const manager = require('../dayManager.js');
-const { recognizeImageTextAsync } = require('../ocr.js');
+const manager = require('../../lib/dayManager.js');
+const { recognizeImageTextAsync } = require('../../lib/ocr.js');
 
 (function(){
     manager.dayAsync(8, 'Space Image Format',

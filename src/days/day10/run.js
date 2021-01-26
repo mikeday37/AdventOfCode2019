@@ -2,9 +2,9 @@
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 const { isNull } = require('util');
-const common = require('../common.js');
+const common = require('../../lib/common.js');
 
-const manager = require('../dayManager.js');
+const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.day(10, 'Monitoring Station',

@@ -2,9 +2,9 @@
   "name": "mikeday37-adventofcode2019",
   "version": "1.0.0",
   "description": "Going back in time with JavaScript/TypeScript. :)",
-  "main": "RunAll.js",
+  "main": "index.js",
   "scripts": {
-    "test": "node RunAll.js"
+    "test": "node index.js"
   },
   "repository": {
     "type": "git",

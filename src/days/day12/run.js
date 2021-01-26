@@ -2,7 +2,7 @@
 const { assert } = require('console');
 const { readFileSync } = require('fs');
 
-const manager = require('../dayManager.js');
+const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.dayAsync(12, 'The N-Body Problem',

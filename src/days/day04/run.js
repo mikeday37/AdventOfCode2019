@@ -1,8 +1,8 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const manager = require('../dayManager.js');
-const common = require('../common.js');
+const manager = require('../../lib/dayManager.js');
+const common = require('../../lib/common.js');
 
 (function(){
     manager.day(4, 'Secure Container',

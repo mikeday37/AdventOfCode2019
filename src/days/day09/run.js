@@ -1,9 +1,9 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const { getIntcodeService } = require('../intcode.js');
+const { getIntcodeService } = require('../../lib/intcode.js');
 
-const manager = require('../dayManager.js');
+const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.day(9, 'Sensor Boost',

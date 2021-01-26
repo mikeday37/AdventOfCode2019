@@ -1,11 +1,11 @@
 'use strict';
 const { assert } = require('console');
 const { readFileSync } = require('fs');
-const { getIntcodeService } = require('../intcode.js');
-const { recognizePhysicalImageTextAsync, createCanvasFromImage, saveCanvas } = require('../ocr.js');
+const { getIntcodeService } = require('../../lib/intcode.js');
+const { recognizePhysicalImageTextAsync, createCanvasFromImage, saveCanvas } = require('../../lib/ocr.js');
 const { hqx } = require('hqx-node-js');
 
-const manager = require('../dayManager.js');
+const manager = require('../../lib/dayManager.js');
 
 (function(){
     manager.dayAsync(11, 'Space Police',
