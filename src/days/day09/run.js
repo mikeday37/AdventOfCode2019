@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import { getIntcodeService } from '../../lib/intcode.js';
 import * as manager from '../../lib/dayManager.js';
 
@@ -13,7 +12,7 @@ import * as manager from '../../lib/dayManager.js';
     (api) =>
     {
         const intcode = api.time('get service', ()=>getIntcodeService());
-        const program = api.time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
+        const program = api.time('read and parse', ()=>intcode.parse(api.readInput()));
 
         checkExamples(intcode);
 

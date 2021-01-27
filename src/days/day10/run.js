@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import * as common from '../../lib/common.js';
 import * as manager from '../../lib/dayManager.js';
 
@@ -14,7 +13,7 @@ import * as manager from '../../lib/dayManager.js';
     {
         common.addExtensions();
 
-        const asteroidField = api.time('read and parse', ()=>parseAsteroidField(readFileSync('./input.txt', 'utf-8')));
+        const asteroidField = api.time('read and parse', ()=>parseAsteroidField(api.readInput()));
 
         checkExamples();
 

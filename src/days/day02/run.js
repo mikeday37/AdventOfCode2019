@@ -13,7 +13,6 @@ code and data share the same memory
 
 */
 
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 
 
@@ -25,7 +24,7 @@ import * as manager from '../../lib/dayManager.js';
     ],
     (api) =>
     {
-        const data = api.time('read input', ()=>readFileSync('./input.txt', 'utf-8'));
+        const data = api.time('read input', ()=>api.readInput());
         const originalMemory = api.time('parse input', ()=>data.split(/\r?\n/)[0].split(',').map(v=>Number(v)));
 
         api.doPart(1, ()=>intcode(originalMemory, 12, 2));

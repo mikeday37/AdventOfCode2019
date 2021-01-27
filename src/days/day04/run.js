@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 import * as common from '../../lib/common.js';
 
@@ -15,7 +14,7 @@ import * as common from '../../lib/common.js';
 
         doTests();
 
-        const range = readFileSync('./input.txt', 'utf-8').trim().split('-').map(x => Number(x.trim()));
+        const range = api.readInput().trim().split('-').map(x => Number(x.trim()));
         const [min, max] = [range[0], range[1]]
 
         api.doPart(1, ()=>getPart(min, max, 1));

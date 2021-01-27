@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 
 (function(){
@@ -12,7 +11,7 @@ import * as manager from '../../lib/dayManager.js';
     {
         checkExamples();
 
-        const tree = api.time('read and parse', ()=>parseOrbits(readFileSync('./input.txt', 'utf-8')));
+        const tree = api.time('read and parse', ()=>parseOrbits(api.readInput()));
 
         api.doPart(1, ()=>getTotalOrbits(tree));
         api.doPart(2, ()=>getTransferCount(tree));

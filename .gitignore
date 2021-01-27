@@ -1,8 +1,12 @@
 # adhoc stuff is currently not to be part of the repo
+adhoc/
 adhoc.js
 
 # temp folder
 temp/
+
+# ts-out folder
+ts-out/
 
 # Logs
 logs

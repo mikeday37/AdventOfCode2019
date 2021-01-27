@@ -2,6 +2,7 @@ import { assert } from 'console';
 import { readdirSync } from 'fs';
 import { cwd, chdir } from 'process';
 import * as path from 'path';
+import * as common from './lib/common.js';
 import * as manager from './lib/dayManager.js';
 
 
@@ -28,7 +29,7 @@ async function runAsRequested()
 	chdir(projectRootDir);
 
 	// path to folder containing day subfolders
-	const daysDir = path.normalize(path.resolve(projectRootDir, 'src', 'days'));
+	const daysDir = path.normalize(path.resolve(projectRootDir, 'ts-out', 'days'));
 
 	// regex for expected directory names for each day:
 	const daySubDirRegex = /day\d+/;
@@ -63,8 +64,19 @@ async function runAsRequested()
 
 		// see if the argument path is in a direct Day## dir of days dir, if not we're not doing single
 		const arg2DirParts = path.parse(arg2Parts.dir);
-		const parentDirOfDaySubDir = path.normalize(arg2DirParts.dir);
-		const relativeDaySubDirFromDaysDir = path.relative(daysDir, parentDirOfDaySubDir);
+		const arg2DaysDir = path.normalize(arg2DirParts.dir);
+		const arg2DaysDirParts = common.splitPath(arg2DaysDir);
+		const runningDaysDirParts = common.splitPath(daysDir);
+		const expected =
+			arg2DaysDirParts[arg2DaysDirParts.length - 2] === 'src'
+			&& arg2DaysDirParts[arg2DaysDirParts.length - 1] === 'days'
+			&& runningDaysDirParts[runningDaysDirParts.length - 2] === 'ts-out'
+			&& runningDaysDirParts[runningDaysDirParts.length - 1] === 'days';
+		if (!expected)
+			return false;
+		const relativeDaySubDirFromDaysDir = path.relative(
+				path.resolve(...arg2DaysDirParts.slice(0, -2)),
+				path.resolve(...runningDaysDirParts.slice(0, -2)));
 		const isDaySubDir = relativeDaySubDirFromDaysDir.length === 0 && daySubDirRegex.test(arg2DirParts.name);
 		if (!isDaySubDir)
 			return false;

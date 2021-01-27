@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 
 
@@ -10,7 +9,7 @@ import * as manager from '../../lib/dayManager.js';
     ],
     (api) =>
     {
-        const data = readFileSync('./input.txt', 'utf-8');
+        const data = api.readInput();
         const lines = data.split(/\r?\n/);
 
         api.doPart(1, ()=>getPart(lines, getFuel));

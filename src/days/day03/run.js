@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 
 
@@ -11,7 +10,7 @@ import * as manager from '../../lib/dayManager.js';
     ],
     (api) =>
     {
-        const fullRawInput = readFileSync('./input.txt', 'utf-8');
+        const fullRawInput = api.readInput();
         const fullInput = parse(fullRawInput);
         const examples = [{
                 rawInput: 'R8,U5,L5,D3\nU7,R6,D4,L4',

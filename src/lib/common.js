@@ -1,3 +1,6 @@
+import * as path from 'path';
+
+
 // add my convenient "extension methods" if desired
 export function addExtensions()
 {
@@ -30,4 +33,26 @@ export function addExtensions()
         writable: true,
         configurable: true
     });
+}
+
+export function splitPath(inputPath)
+{
+    let currentPath = inputPath;
+    let parts = [];
+    while (true)
+    {
+        const {base, dir} = path.parse(currentPath);
+        if (base)
+        {
+            parts.unshift(base);
+            currentPath = dir;
+        }
+        else
+        {
+            if (dir)
+                parts.unshift(dir);
+            break;
+        }
+    }
+    return parts;
 }

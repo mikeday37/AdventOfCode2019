@@ -1,5 +1,3 @@
-import { assert } from 'console';
-import { readFileSync } from 'fs';
 import { getIntcodeService } from '../../lib/intcode.js';
 import { recognizePhysicalImageTextAsync, createCanvasFromImage, saveCanvas } from '../../lib/ocr.js';
 import { hqx } from 'hqx-node-js';
@@ -15,7 +13,7 @@ import * as manager from '../../lib/dayManager.js';
     async (api) =>
     {
         const intcode = api.time('get service', ()=>getIntcodeService());
-        const program = api.time('read and parse', ()=>intcode.parse(readFileSync('./input.txt', 'utf-8')));
+        const program = api.time('read and parse', ()=>intcode.parse(api.readInput()));
 
         let part1Output;
         api.doPart(1, () => {

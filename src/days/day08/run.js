@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 import { recognizeImageTextAsync } from '../../lib/ocr.js';
 
@@ -17,7 +16,7 @@ import { recognizeImageTextAsync } from '../../lib/ocr.js';
         let layers;
 
         api.doPart(1, () => {
-            const rawInput = readFileSync('./input.txt', 'utf-8');
+            const rawInput = api.readInput();
             layers = parseLayers(rawInput, 25, 6);
             const layerWithFewest0 = layers
                 .map(x => ({layer: x, zeroes: countLayerDigits(x, 0)}))

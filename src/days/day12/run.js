@@ -1,5 +1,4 @@
 import { assert } from 'console';
-import { readFileSync } from 'fs';
 import * as manager from '../../lib/dayManager.js';
 
 
@@ -11,7 +10,7 @@ import * as manager from '../../lib/dayManager.js';
     ],
     async (api) =>
     {
-        const input = api.time('read and parse', ()=>parsePositions(readFileSync('./input.txt', 'utf-8')));
+        const input = api.time('read and parse', ()=>parsePositions(api.readInput()));
 
         api.time('check examples', () => checkExamples());
 

@@ -15,6 +15,7 @@
             "program": "${workspaceFolder}/index.js",
             "args": [ "${file}" ],
             "cwd": "${workspaceFolder}",
+            "preLaunchTask": "tsc: build - src/tsconfig.json",
         },
         {
             "type": "node",

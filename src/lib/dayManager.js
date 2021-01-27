@@ -1,4 +1,7 @@
-import { hrtime } from 'process';
+import { readFileSync } from 'fs';
+import { hrtime, cwd } from 'process';
+import * as path from 'path';
+import * as common from './common.js';
 
 
 // special export to get results of all days
@@ -71,6 +74,24 @@ function makeHelper(day)
             ? 1
             : day.maxRuns || 100;	
 
+	api.readInput = () =>
+	{
+		const curPath = cwd();
+		const pathParts = common.splitPath(curPath);
+		const daySubDirRegex = /day\d+/;
+		const srcIndex = pathParts.length - 3;
+		const expected =
+			pathParts[srcIndex] === 'ts-out'
+			&& pathParts[srcIndex + 1] === 'days'
+			&& daySubDirRegex.test(pathParts[srcIndex + 2]);
+		if (!expected)
+			throw new Error(`attempting to read input from unexpected path: ${curPath}`);
+		pathParts[srcIndex] = 'src';
+		pathParts.push('input.txt');
+		const inputPath = path.resolve(...pathParts);
+		return readFileSync(inputPath, 'utf-8');
+	}
+	
 	api.time = (label, action) =>
 	{
 		timings.set(label, []);
