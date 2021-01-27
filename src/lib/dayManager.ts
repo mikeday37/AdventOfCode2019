@@ -7,7 +7,7 @@ import * as common from './common.js';
 type DayPartAnswer = string | number | bigint | null;
 
 interface DayApi {
-	time: (label: string, action: () => any) => any;
+	time: <T>(label: string, action: () => T) => T;
 	doPart: (part: number, fn: () => DayPartAnswer) => void;
 	notePart: (part: number, result: DayPartAnswer) => void;
 	readInput: () => string,
@@ -15,7 +15,7 @@ interface DayApi {
 }
 
 interface DayAsyncApi extends DayApi {
-	timeAsync: (label: string, action: () => Promise<any>) => Promise<any>;
+	timeAsync: <T>(label: string, action: () => Promise<T>) => Promise<T>;
 	doPartAsync: (part: number, fn: () => Promise<DayPartAnswer>) => Promise<void>;
 }
 

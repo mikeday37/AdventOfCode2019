@@ -1,4 +1,66 @@
-export function getIntcodeService()
+export function getIntcodeService() : Intcode.Service {return Intcode.getService();}
+
+export namespace Intcode {
+
+export interface RunResults {
+    memory: number[];
+    output: number[];
+    instructionPointer: number;
+    inputPointer: number;
+    haltCode: number;
+    haltReason: string | null;
+}
+
+export interface MachineState {
+    ops: Map<number, Operation>;
+    memory: number[];
+    io: IO;
+    instructionPointer: number;
+    relativeBase: number;
+    haltCode: number;
+    haltReason: string | null;
+    
+    // TODO: this is an akward place to put these constants -- review best js/ts practice and fix
+    HALTCODE_NORMAL_TERMINATION: 1;
+    HALTCODE_WAITING_FOR_INPUT: -71;
+
+    step: () => void;
+    runToHalt: () => void;
+}
+
+export interface IO {
+    hasInput: () => boolean;
+    readInput: () => number;
+    writeOutput: (value: number) => void;
+}
+
+export interface Service {
+    parse: (programString: string) => number[];
+    run: (initialMemory: number[], input: number[], logSteps?: boolean) => RunResults;
+    init: (initialMemory: number[], io: IO) => MachineState;
+}
+
+export interface OperationImplementationApi {
+    read: (argument: number) => number;
+    write: (argument: number, value: number | undefined) => void;
+    ioRead: () => number | undefined;
+    ioWrite: (value: number) => void;
+    jump: (argument: number) => void;
+    addToRelativeBase: (value: number) => void;
+    halt: () => void;
+}
+
+export type OperationImplementor = (api: OperationImplementationApi) => void;
+
+export interface Operation {
+    opcode: number;
+    name: string;
+    paramCount: number;
+    impl: OperationImplementor;
+}
+
+
+export function getService() : Service
 {
 	let knownOperations = getKnownIntcodeOperations();
 	return {
@@ -10,10 +72,11 @@ export function getIntcodeService()
 
 function getKnownIntcodeOperations()
 {
-    let ops = new Map();
+    let ops: Map<number, Operation> = new Map();
 
-    const operation =   (opcode, name, paramCount, impl) =>
-        ops.set(opcode, {opcode, name, paramCount, impl});
+    const operation: (opcode: number, name: string, paramCount: number, impl: OperationImplementor) => void
+        = (opcode, name, paramCount, impl) =>
+            ops.set(opcode, {opcode, name, paramCount, impl});
 
     operation( 1,   'add',   3,  c => c.write(3, c.read(1) + c.read(2))           );
     operation( 2,   'mul',   3,  c => c.write(3, c.read(1) * c.read(2))           );
@@ -34,16 +97,12 @@ function getKnownIntcodeOperations()
     return ops;
 }
 
-function initializeIntcodeMachine(ops, initialMemory, io)
+function initializeIntcodeMachine(ops: Map<number, Operation>, initialMemory: number[], io: IO)
 {
-	let state = {
+	let state: MachineState = {
 		ops,
 		memory: [...initialMemory],
-		io: { // we're doing this instead of just "io," to force the structure
-			hasInput: io.hasInput,
-			readInput: io.readInput,
-			writeOutput: io.writeOutput
-		},
+		io,
         instructionPointer: 0,
         relativeBase: 0,
 		haltCode: 0,
@@ -52,15 +111,16 @@ function initializeIntcodeMachine(ops, initialMemory, io)
         // TODO: this is an akward place to put these constants -- review best js practice and fix
 		HALTCODE_NORMAL_TERMINATION: 1,
 		HALTCODE_WAITING_FOR_INPUT: -71
-	};
-	state.step = () => iterateIntecodeMachine(state);
+	} as MachineState;
+    state.step = () => iterateIntecodeMachine(state);
+    state.runToHalt = () => {while (state.haltCode === 0) state.step();}
 	return state;
 }
 
-function runIntcodeProgram(ops, initialMemory, input = [], logSteps = false)
+function runIntcodeProgram(ops: Map<number, Operation>, initialMemory: number[], input: number[] = [], logSteps = false)
 {
 	let inputPointer = 0;
-	let output = [];
+	let output: number[] = [];
 	let state = initializeIntcodeMachine(ops, initialMemory, {
 		hasInput: () => true,
 		readInput: () => {
@@ -72,8 +132,7 @@ function runIntcodeProgram(ops, initialMemory, input = [], logSteps = false)
 		writeOutput: v => output.push(v)
 	});
 
-	while (!state.haltCode)
-		state.step();
+	state.runToHalt();
 
     return {
         memory: state.memory,
@@ -85,13 +144,14 @@ function runIntcodeProgram(ops, initialMemory, input = [], logSteps = false)
 	};
 }
 
-function iterateIntecodeMachine(state, logSteps = false)
+function iterateIntecodeMachine(state: MachineState, logSteps = false)
 {
 	let ops = state.ops;
 	let memory = state.memory;
     let instructionPointer = state.instructionPointer;
 
-	const doHalt = (code, reason) => [state.haltCode, state.haltReason] = [code, reason];
+    const doHalt: (code: number, reason: string) => void
+        = (code, reason) => [state.haltCode, state.haltReason] = [code, reason];
 
 	try {
 		inner();
@@ -123,7 +183,7 @@ function iterateIntecodeMachine(state, logSteps = false)
             return;
         }
 
-        const op = ops.get(opcode);
+        const op = ops.get(opcode) as Operation;
 
         if (instructionPointer + op.paramCount >= memory.length)
         {
@@ -135,7 +195,7 @@ function iterateIntecodeMachine(state, logSteps = false)
         const parameterModes = [...modeString].reverse().map(x => Number(x));
         const parameterValues = memory.slice(instructionPointer + 1, instructionPointer + 1 + op.paramCount);
 
-        function resolveMemoryAccess(address, actionOnAddress)
+        function resolveMemoryAccess(address: number, actionOnAddress: (addres: number) => number)
         {
             if (address < 0)
                 throw Error(`address negative: ${address}`);
@@ -152,7 +212,7 @@ function iterateIntecodeMachine(state, logSteps = false)
 
             return actionOnAddress(address);
         }
-        function paramRead(a)
+        function paramRead(a: number)
         {
             const mode = parameterModes[a - 1];
             switch (mode) 
@@ -163,7 +223,7 @@ function iterateIntecodeMachine(state, logSteps = false)
                 default: throw Error(`bad parameter mode ${mode} during read`);
             }
         }
-        function paramWrite(a, v)
+        function paramWrite(a: number, v: number)
         {
             const mode = parameterModes[a - 1];
             switch (mode) 
@@ -186,7 +246,7 @@ function iterateIntecodeMachine(state, logSteps = false)
 
         op.impl({
             read: a => paramRead(a),
-            write: (a, v) => paramWrite(a, v),
+            write: (a, v) => {if (v !== undefined) paramWrite(a, v)},
             ioRead: () => {
 				if (state.io.hasInput())
 					return state.io.readInput();
@@ -204,4 +264,6 @@ function iterateIntecodeMachine(state, logSteps = false)
         else if (state.haltCode === 0)
             instructionPointer += 1 + op.paramCount;
 	}
+}
+
 }
