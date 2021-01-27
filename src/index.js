@@ -1,5 +1,5 @@
 import { assert } from 'console';
-import { readdirSync } from 'fs';
+import { readdirSync, existsSync } from 'fs';
 import { cwd, chdir } from 'process';
 import * as path from 'path';
 import * as common from './lib/common.js';
@@ -59,7 +59,7 @@ async function runAsRequested()
 
 		// see if the filename of the argument is run.js, if not, we're not doing single
 		const arg2Parts = path.parse(path.resolve(process.argv[2]));
-		if (arg2Parts.base !== 'run.js')
+		if (!(arg2Parts.base === 'run.js' || arg2Parts.base === 'run.ts'))
 			return false;
 
 		// see if the argument path is in a direct Day## dir of days dir, if not we're not doing single
@@ -112,8 +112,14 @@ async function runAsRequested()
 	{
 		// require script for day
 		const dir = path.resolve(daysDir, `day${String(dayNum).padStart(2, '0')}`);
-		const script = path.resolve(dir, 'run.js');
-		await import ('file://' + script);
+		let script = path.resolve(dir, 'run.ts');
+		if (existsSync(script))
+			await import ('file://' + script);
+		else
+		{
+			script = path.resolve(dir, 'run.js');
+			await import ('file://' + script);
+		}
 
 		// store the dir for that day
 		tracker.days.get(dayNum).dir = dir;
