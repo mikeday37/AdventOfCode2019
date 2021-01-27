@@ -38,7 +38,7 @@ export function addExtensions() : void
 export function splitPath(inputPath: string) : string[]
 {
     let currentPath = inputPath;
-    let parts = [];
+    let parts: string[] = [];
     while (true)
     {
         const {base, dir} = path.parse(currentPath);

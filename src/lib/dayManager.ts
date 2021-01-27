@@ -4,32 +4,62 @@ import * as path from 'path';
 import * as common from './common.js';
 
 
+type DayPartAnswer = string | number | bigint | null;
+
+interface DayApi {
+	time: (label: string, action: () => any) => any;
+	doPart: (part: number, fn: () => DayPartAnswer) => void;
+	notePart: (part: number, result: DayPartAnswer) => void;
+	readInput: () => string,
+	runFast: boolean;
+}
+
+interface DayAsyncApi extends DayApi {
+	timeAsync: (label: string, action: () => Promise<any>) => Promise<any>;
+	doPartAsync: (part: number, fn: () => Promise<DayPartAnswer>) => Promise<void>;
+}
+
+type DayFunction = (api: DayApi) => void;
+type DayAsyncFunction = (api: DayAsyncApi) => Promise<void>;
+
+interface DayTrackerEntry {
+	answers: DayPartAnswer[],
+	dayName: string,
+	dayNum: number,
+	dir: string | null,
+	expectedAnswers: DayPartAnswer[],
+	fn: DayFunction | DayAsyncFunction,
+	isAsync: boolean,
+	maxRuns: number | null
+}
+
+
 // special export to get results of all days
 export function __getDayTracker() {return dayTracker;}
 
-// hoist a results tracker if one doesn't already exist -- we intend this to be global across all days, whether run singly or not
-if (typeof dayTracker === 'undefined') {var dayTracker = createDayTracker();}
+// global singleton results tracker -- holds results for all days
+const dayTracker = createDayTracker();
 
 // start each day's run script with a call to this method, leaving the answers array empty until they are known
-export function day(dayNum, dayName, expectedAnswers, fn, maxRuns = null)
+export function day(dayNum: number, dayName: string, expectedAnswers: DayPartAnswer[], fn: DayFunction, maxRuns: number | null = null)
 {
     dayTracker.addDay(dayNum, dayName, expectedAnswers, fn, maxRuns, false);
 }
 
 // use this instead of day() if the function must be async
-export function dayAsync(dayNum, dayName, expectedAnswers, fnAsync, maxRuns = null)
+export function dayAsync(dayNum: number, dayName: string, expectedAnswers: DayPartAnswer[], fnAsync: DayAsyncFunction, maxRuns: number | null = null)
 {
     dayTracker.addDay(dayNum, dayName, expectedAnswers, fnAsync, maxRuns, true);
 }
 
 function createDayTracker()
 {
-	let days = new Map();
+	let days: Map<number, DayTrackerEntry> = new Map();
 
-	function prepareExpectedAnswers(expectedAnswers)
+	function prepareExpectedAnswers(expectedAnswers: DayPartAnswer[])
 	{
 		let ea = expectedAnswers ?? [];
-		let result = [null, null];
+		let result: DayPartAnswer[] = [null, null];
 		for (let i of [0,1])
 			if (ea.length > i)
 				result[i] = expectedAnswers[i];
@@ -40,10 +70,11 @@ function createDayTracker()
 	{
 		days,
 
-		addDay: (dayNum, dayName, expectedAnswers, fn, maxRuns, isAsync) => {
+		addDay: (dayNum: number, dayName: string, expectedAnswers: DayPartAnswer[], fn: DayFunction | DayAsyncFunction, maxRuns: number | null = null, isAsync: boolean) => {
 			days.set(dayNum, {
 				dayNum,
 				dayName,
+				dir: null,
 				expectedAnswers: prepareExpectedAnswers(expectedAnswers),
 				answers: [null, null],
 				fn,
@@ -52,9 +83,9 @@ function createDayTracker()
 			});
 		},
 
-		run: (day) => runDay(day),
+		run: (day: DayTrackerEntry) => runDay(day),
 
-		runAsync: async (day) => await runDayAsync(day),
+		runAsync: async (day: DayTrackerEntry) => await runDayAsync(day),
 
 		runFast: false
 	};
@@ -62,11 +93,10 @@ function createDayTracker()
 	return tracker;
 }
 
-function makeHelper(day)
+function makeHelper(day: DayTrackerEntry)
 {
-	let api = {runFast: dayTracker.runFast};
-	let helper = {api};
-	let timings = new Map();
+	let api: DayAsyncApi = {runFast: dayTracker.runFast} as DayAsyncApi;
+	let timings: Map<string, [number, number][]> = new Map();
 
     const 
         maxSeconds = 1,
@@ -100,7 +130,7 @@ function makeHelper(day)
 			const before = hrtime();
 			result = action();
 			const duration = hrtime(before);
-			timings.get(label).push(duration);
+			(timings.get(label) as [number, number][]).push(duration);
 			run++;
 		} while (hrtime(start)[0] < maxSeconds && run <= runLimit);
 		return result;
@@ -115,7 +145,7 @@ function makeHelper(day)
 				const before = hrtime();
 				result = await actionAsync();
 				const duration = hrtime(before);
-				timings.get(label).push(duration);
+				(timings.get(label) as [number, number][]).push(duration);
 				run++;
 			} while (hrtime(start)[0] < maxSeconds && run <= runLimit);
 			return result;
@@ -140,11 +170,11 @@ function makeHelper(day)
 		console.log(`Part ${part}: ${result}${validMsg}`);
 	};
 
-	helper.logResults = () =>
+	function logResults()
 	{
 		console.log('\n--- timing info: ---')
 
-		function toPrettyDuration(nanoseconds) {
+		function toPrettyDuration(nanoseconds: bigint) {
 			const v = BigInt(nanoseconds);
 			let u = 0;
 			let divisor = 1n;
@@ -178,17 +208,17 @@ function makeHelper(day)
 		console.log('--- end ---');
 	};
 
-	return helper;
+	return {logResults, api};
 }
 
-function runDay(day)
+function runDay(day: DayTrackerEntry)
 {
 	const helper = makeHelper(day);
 	day.fn(helper.api);
 	helper.logResults();
 }
 
-async function runDayAsync(day)
+async function runDayAsync(day: DayTrackerEntry)
 {
 	const helper = makeHelper(day);
 	await day.fn(helper.api);
