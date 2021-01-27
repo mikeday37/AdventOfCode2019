@@ -112,14 +112,8 @@ async function runAsRequested()
 	{
 		// require script for day
 		const dir = path.resolve(daysDir, `day${String(dayNum).padStart(2, '0')}`);
-		let script = path.resolve(dir, 'run.ts');
-		if (existsSync(script))
-			await import ('file://' + script);
-		else
-		{
-			script = path.resolve(dir, 'run.js');
-			await import ('file://' + script);
-		}
+		let script = path.resolve(dir, 'run.js');
+		await import ('file://' + script);
 
 		// store the dir for that day
 		tracker.days.get(dayNum).dir = dir;

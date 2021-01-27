@@ -2,7 +2,7 @@ import * as path from 'path';
 
 
 // add my convenient "extension methods" if desired
-export function addExtensions()
+export function addExtensions() : void
 {
     // decided to play with technique for extending existing types "safely."
     // this seems to be the closest you can get to C# extension methods in JS,
@@ -35,7 +35,7 @@ export function addExtensions()
     });
 }
 
-export function splitPath(inputPath)
+export function splitPath(inputPath: string) : string[]
 {
     let currentPath = inputPath;
     let parts = [];

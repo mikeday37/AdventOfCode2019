@@ -21,5 +21,8 @@
     "canvas": "^2.6.1",
     "hqx-node-js": "git+https://github.com/mikeday37/hqx-node-js.git",
     "tesseract.js": "^2.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.22"
   }
 }
