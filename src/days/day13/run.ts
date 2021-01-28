@@ -1,5 +1,3 @@
-import * as process from 'process';
-import '../../lib/intcode.js';
 import * as manager from '../../lib/dayManager.js';
 import { Intcode } from '../../lib/intcode.js';
 
