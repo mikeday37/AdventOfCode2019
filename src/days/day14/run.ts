@@ -30,6 +30,7 @@ Part 1:
 (function(){
 	manager.day(14, 'Space Stoichiometry',
 	[
+		202617
 	],
 	(api) =>
 	{
@@ -37,11 +38,19 @@ Part 1:
 
 		const reactionList = api.time('read and parse', () => parseReactionList(api.readInput()));
 
-		api.doPart(1, () => getMinimumOreRequiredFor1Fuel(reactionList));
+		let factory: NanoFactory;
+		api.doPart(1, () => {
+			const result = simulateToSatisfyRequirement(1, FUEL, reactionList);
+			factory = result.resultingFactory;
+			return result.minimumOreRequired;
+		});
 	});
 })();
 
 type Chemical = string;
+
+const ORE: Chemical = 'ORE';
+const FUEL: Chemical = 'FUEL';
 
 interface ChemicalQuantity {
 	quantity: number,
@@ -116,7 +125,7 @@ class NanoFactory
 	constructor(reactionList: ReactionList)
 	{
 		this.reactionList = reactionList;
-		for (let chemical of ['ORE', ...reactionList.byOutputChemical.keys()])
+		for (let chemical of [ORE, ...reactionList.byOutputChemical.keys()])
 			this.chemicals.set(chemical, {required: 0, available: 0});
 	}
 
@@ -234,37 +243,36 @@ class NanoFactory
 	}
 }
 
-function getMinimumOreRequiredFor(quantity: number, chemical: Chemical, reactionList: ReactionList) : number
+function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reactionList: ReactionList) : {minimumOreRequired: number, resultingFactory: NanoFactory}
 {
 	const factory = new NanoFactory(reactionList);
 	factory.addRequirement(quantity, chemical);
-	const ore = 'ORE';
-	factory.simulateRequiredReactionsForMinimalInput(ore);
-	return factory.getRequiredAmount(ore);
+	factory.simulateRequiredReactionsForMinimalInput(ORE);
+	return {
+		minimumOreRequired: factory.getRequiredAmount(ORE),
+		resultingFactory: factory
+	};
 }
 
-function getMinimumOreRequiredFor1Fuel(reactionList: ReactionList) : number
-{
-	return getMinimumOreRequiredFor(1, 'FUEL', reactionList);
-}
-
-type Part1Example = [
+type Example = [
 	minimumOre: number,
+	maxFuelGiven1TrillionOre: number | null,
 	rawReactionList: string
 ];
 
 function checkExamples()
 {
-	function checkPart1Example(example: Part1Example)
+	function checkExample(example: Example)
 	{
-		const reactionList = parseReactionList(example[1]);
-		const result = getMinimumOreRequiredFor1Fuel(reactionList);
-		assert(result === example[0], `part 1 example mismatch: expected = ${example[0]}, result = ${result}`);
+		const reactionList = parseReactionList(example[2]);
+		const result = simulateToSatisfyRequirement(1, FUEL, reactionList);
+		assert(result.minimumOreRequired === example[0], `part 1 example mismatch: expected = ${example[0]}, result = ${result}`);
+
 	}
 	
-	const part1Examples: Part1Example[] = [
+	const examples: Example[] = [
 		[
-			31,
+			31, null,
 			`
 			10 ORE => 10 A
 			1 ORE => 1 B
@@ -274,7 +282,7 @@ function checkExamples()
 			7 A, 1 E => 1 FUEL
 			`
 		],[
-			165,
+			165, null,
 			`
 			9 ORE => 2 A
 			8 ORE => 3 B
@@ -285,7 +293,7 @@ function checkExamples()
 			2 AB, 3 BC, 4 CA => 1 FUEL
 			`
 		],[
-			13312,
+			13312, 82892753,
 			`
 			157 ORE => 5 NZVS
 			165 ORE => 6 DCFZ
@@ -298,7 +306,7 @@ function checkExamples()
 			3 DCFZ, 7 NZVS, 5 HKGWZ, 10 PSHF => 8 KHKGT
 			`
 		],[
-			180697,
+			180697, 5586022,
 			`
 			2 VPVL, 7 FWMGM, 2 CXFTF, 11 MNCFX => 1 STKFG
 			17 NVRVD, 3 JNWZP => 8 VPVL
@@ -314,7 +322,7 @@ function checkExamples()
 			176 ORE => 6 VJHF
 			`
 		],[
-			2210736,
+			2210736, 460664,
 			`
 			171 ORE => 8 CNZTR
 			7 ZLQW, 3 BMBT, 9 XCVML, 26 XMNCP, 1 WPTQ, 2 MZWV, 1 RJRHP => 4 PLWSL
@@ -337,6 +345,6 @@ function checkExamples()
 		]
 	];
 
-	for (let example of part1Examples)
-		checkPart1Example(example);
+	for (let example of examples)
+		checkExample(example);
 }
