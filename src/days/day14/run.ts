@@ -25,6 +25,9 @@ Notes:
 Part 1:
 	What is the minimum ORE required to produce exactly 1 FUEL?
 
+Part 2:
+	Given 1 trillion avaiable ORE, what's the max FUEL you can produce?
+
 */
 
 (function(){
@@ -115,6 +118,11 @@ interface RequiredAvailable {
 	available: number;
 }
 
+interface ReactionSequenceEntry {
+	outputChemical: Chemical;
+	iterations: number
+}
+
 /** represents a simulated NanoFactory for a particular reaction list */
 class NanoFactory
 {
@@ -189,8 +197,11 @@ class NanoFactory
 	 * repeatedly simulates required reactions until only the given targetMinimalInput chemical is still required,
 	 * while attempting to minimize the required amount of that chemical.
 	 */
-	simulateRequiredReactionsForMinimalInput(targetMinimalInput: Chemical) : void
+	simulateRequiredReactionsForMinimalInput(targetMinimalInput: Chemical) : ReactionSequenceEntry[]
 	{
+		// keep track of our reaction sequence
+		const reactionSequence: ReactionSequenceEntry[] = [];
+
 		// we're about to enter a loop with a complex condition,
 		// so make some helpers to simplify gauranteeing each loop iteration involves at least one simulated reaction
 		let reactionCount = 0;
@@ -207,6 +218,7 @@ class NanoFactory
 				throw new Error('attempted to simulate negative iterations of reaction in main simulation loop');
 			reactionCount += iterations;
 			factory.simulateReaction(outputChemical, iterations);
+			reactionSequence.unshift({outputChemical, iterations});
 		}
 
 		// loop until only the target chemical is required, with the above safety check at end of each loop
@@ -225,6 +237,8 @@ class NanoFactory
 				simulateReaction(requiredChemical, iterations);
 			}
 		}
+
+		return reactionSequence;
 	}
 
 	/** returns true if and only if there is eactly one chemical with a positive requirement, and that chemical is the given */
@@ -243,14 +257,15 @@ class NanoFactory
 	}
 }
 
-function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reactionList: ReactionList) : {minimumOreRequired: number, resultingFactory: NanoFactory}
+function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reactionList: ReactionList) : {minimumOreRequired: number, resultingFactory: NanoFactory, reactionSequence: ReactionSequenceEntry[]}
 {
 	const factory = new NanoFactory(reactionList);
 	factory.addRequirement(quantity, chemical);
-	factory.simulateRequiredReactionsForMinimalInput(ORE);
+	const reactionSequence = factory.simulateRequiredReactionsForMinimalInput(ORE);
 	return {
 		minimumOreRequired: factory.getRequiredAmount(ORE),
-		resultingFactory: factory
+		resultingFactory: factory,
+		reactionSequence
 	};
 }
 
