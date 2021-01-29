@@ -1,5 +1,6 @@
 import { assert, exception } from 'console';
 import * as manager from '../../lib/dayManager.js';
+import { Rational } from '../../lib/rational.js';
 
 /*
 
@@ -38,7 +39,8 @@ const ONE_TRILLION = 1000000000000;
 (function(){
 	manager.day(14, 'Space Stoichiometry',
 	[
-		202617
+		202617,
+		7863863
 	],
 	(api) =>
 	{
@@ -46,16 +48,8 @@ const ONE_TRILLION = 1000000000000;
 
 		const reactionList = api.time('read and parse', () => parseReactionList(api.readInput()));
 
-		let part1SimResult: SatisfactionSimulationResult;
-		api.doPart(1, () => {
-			part1SimResult = simulateToSatisfyRequirement(1, FUEL, reactionList);
-			return part1SimResult.minimumOreRequired;
-		});
-
-		api.doPart(2, () => {
-			const part2SimResult = simulateToConsumeAvailable(ONE_TRILLION, ORE, reactionList, part1SimResult);
-			return part2SimResult.fuelGenerated;
-		});
+		api.doPart(1, () => simulateToSatisfyRequirement(1, FUEL, reactionList).minimumOreRequired);
+		api.doPart(2, () => simulateToConsumeAvailable(ONE_TRILLION, ORE, reactionList).fuelGenerated);
 	});
 })();
 
@@ -118,9 +112,10 @@ function parseReaction(rawReaction: string) : Reaction
 	}
 }
 
-interface RequiredAvailable {
+interface ChemicalTracker {
 	required: number;
 	available: number;
+	tier: number | null;
 }
 
 interface ReactionSequenceEntry {
@@ -132,7 +127,7 @@ interface ReactionSequenceEntry {
 class NanoFactory
 {
 	private reactionList: ReactionList;
-	private chemicals: Map<Chemical, RequiredAvailable> = new Map();
+	private chemicals: Map<Chemical, ChemicalTracker> = new Map();
 	private totalReactionCount: number = 0;
 
 	/** creates a NanoFactory for the given ReactionList */
@@ -140,7 +135,7 @@ class NanoFactory
 	{
 		this.reactionList = reactionList;
 		for (let chemical of [ORE, ...reactionList.byOutputChemical.keys()])
-			this.chemicals.set(chemical, {required: 0, available: 0});
+			this.chemicals.set(chemical, {required: 0, available: 0, tier: null});
 	}
 
 	/** adds to the required amount for the given chemical */
@@ -166,7 +161,7 @@ class NanoFactory
 	}
 
 	/** performs an action on the entry for the given chemical */
-	private accessChemical(chemical: Chemical, action: (entry: RequiredAvailable) => void) : void
+	private accessChemical(chemical: Chemical, action: (entry: ChemicalTracker) => void) : void
 	{
 		// get the entry
 		const entry = this.chemicals.get(chemical);
@@ -211,6 +206,13 @@ class NanoFactory
 
 		// increase total reaction count
 		this.totalReactionCount += iterations;
+	}
+
+	/** returns true if and only if there is eactly one chemical with a positive requirement, and that chemical is the given */
+	chemicalIsSoleRequirement(requiredChemical: Chemical) : boolean
+	{
+		const nonZeroRequirements = [...this.chemicals.entries()].filter(x => x[1].required > 0);
+		return nonZeroRequirements.length === 1 && nonZeroRequirements[0][0] === requiredChemical;
 	}
 
 	/**
@@ -263,56 +265,91 @@ class NanoFactory
 		return reactionSequence;
 	}
 
+	/** traverses all input paths from the given chemical "up" to its inputs, recursively.  defaults to shallow first. */
+	private walkInputs(chemical: Chemical, action: (chemical: Chemical, depth: number) => void, depthFirst: boolean = false, depth: number = 0) : void
+	{
+		if (!depthFirst)
+			action(chemical, depth);
+
+		if (chemical !== ORE)
+			for (let inputChemical of this.reactionList.byOutputChemical.get(chemical)!.inputs.map(x => x.chemical))
+				this.walkInputs(inputChemical, action, depthFirst, depth + 1);
+
+		if (depthFirst)
+			action(chemical, depth);
+	}	
+
 	/**
-	 * uses a pre-calculated reaction sequence to simulate consumption of the given input chemical,
-	 * for maximum generation of the given ultimate chemical.
+	 * runs a simulation based on the available inputs (which must be added prior to call)
+	 * to maximize fuel output.
 	 */
-	simulateReactionsToMaximizeFuelOutput(satResult: SatisfactionSimulationResult) : void
+	simulateReactionsToMaximizeFuelOutput() : void
 	{
-		// determine the max number of times we can repeat the entire simulated reaction sequence
-		const sequenceFactor = Math.floor(this.getAvailableAmount(ORE) / satResult.minimumOreRequired);
+		// determine max depth of input graph
+		let maxDepth = 0;
+		this.walkInputs(FUEL, (_, depth) => maxDepth = Math.max(depth, maxDepth));
 
-		// simulate entire sequence, multiplied by that factor
-		for (const entry of satResult.reactionSequence)
-			this.simulateReaction(entry.outputChemical, entry.iterations * sequenceFactor);
+		// assign tier to each chemical = min(maxDepth - depth) over all depths at which it is reached
+		this.walkInputs(FUEL, (chemical, depth) => 
+			this.accessChemical(chemical, entry => 
+				entry.tier = Math.min(maxDepth - depth, entry.tier ?? Infinity)
+			)
+		);
 
-		// repeatedly simluate additional possible reactions until there can't be any more
-		let lastTotalReactionCount = this.totalReactionCount;
-		while (true)
-		{
-			// without using more ORE, recursively maximize fuel production from what remains, using the same reaction sequence as a balancing guide
-			this.maximizeProductionWithoutConsumingFurtherOre(FUEL, satResult.reactionSequence);
-			if (this.totalReactionCount === lastTotalReactionCount)
-				break;
-			lastTotalReactionCount = this.totalReactionCount;
+		// get tier-ordered list of chemical entries
+		let tierOrderedChemicalEntries = [...this.chemicals.entries()].sort((a,b) => a[1].tier! - b[1].tier!);
+
+		// for each reaction, determine the rational inputs required to produce one output,
+		// and start building the productionRatios Map, initialized to FUEL = 1, all else 0.
+		interface RationalInputQuantity {
+			chemical: Chemical;
+			quantity: Rational;
 		}
+		interface ChemInfoEntry {
+			reaction: Reaction;
+			unitProductionRequirements: RationalInputQuantity[];
+		}
+		const chemInfo: Map<Chemical, ChemInfoEntry> = new Map();
+		const productionRatios: Map<Chemical, Rational> = new Map();
+		for (let reaction of this.reactionList.reactions)
+		{
+			chemInfo.set(reaction.output.chemical, {
+				reaction,
+				unitProductionRequirements: reaction.inputs.map(input => ({
+					chemical: input.chemical,
+					quantity: new Rational(input.quantity, reaction.output.quantity),
+				}))
+			});
+			productionRatios.set(reaction.output.chemical, new Rational(reaction.output.chemical === FUEL ? 1 : 0, 1))
+		}
+		productionRatios.set(ORE, new Rational(0, 1));
 
-		let z = -1;
-	}
+		// for each reaction in reverse tier order, add its unitProductionRequirements to the production ratios, multiplied by the chemicals current production ratio
+		for (let outputChemical of [...tierOrderedChemicalEntries].reverse().map(x => x[0]).filter(x => x !== ORE))
+			for (let i of chemInfo.get(outputChemical)!.unitProductionRequirements)
+			{
+				const inputRational = productionRatios.get(i.chemical)!;
+				const addend = new Rational();
+				addend.add(i.quantity)
+				addend.multiply(productionRatios.get(outputChemical)!);
+				inputRational.add(addend);
+			}
 
-	maximizeProductionWithoutConsumingFurtherOre(chemical: Chemical, reactionSequence: ReactionSequenceEntry[])
-	{
-		// get the reaction for this chemical
-		const reaction = this.reactionList.byOutputChemical.get(chemical)!;
+		// see what the ideal fuel production would be
+		const productionFactor = new Rational(this.getStrictlyAvailableAmount(ORE))
+		productionFactor.divide(productionRatios.get(ORE)!);
+		const idealFuelProduction = Math.floor(productionFactor.getNumber());
 
-		// bail if it requires ORE
-		if (reaction.inputs.filter(x => x.chemical === ORE).length > 0)
-			return;
-
-		// maximize all the inputs
-		for (const inputChemical of reaction.inputs.map(x => x.chemical))
-			this.maximizeProductionWithoutConsumingFurtherOre(inputChemical, reactionSequence);
-
-		// run the reaction as many times as we can
-		const availableIterations = reaction.inputs.map(x => Math.floor(this.getAvailableAmount(x.chemical) / x.quantity)).reduce((a,b) => Math.min(a,b));
-		this.simulateReaction(chemical, availableIterations);
-	}
-
-	/** returns true if and only if there is eactly one chemical with a positive requirement, and that chemical is the given */
-	chemicalIsSoleRequirement(requiredChemical: Chemical) : boolean
-	{
-		const nonZeroRequirements = [...this.chemicals.entries()].filter(x => x[1].required > 0);
-		return nonZeroRequirements.length === 1 && nonZeroRequirements[0][0] === requiredChemical;
+		// in tier order, perform all reactions at determined ratio * productionFactor iterations
+		for (let e of tierOrderedChemicalEntries)
+		{
+			if (e[0] == ORE) continue;
+			const iterationRational = new Rational();
+			iterationRational.add(productionRatios.get(e[0])!);
+			iterationRational.multiply(productionFactor);
+			const iterations = Math.floor(iterationRational.getNumber());
+			this.simulateReaction(e[0], iterations);
+		}
 	}
 
 	/** returns the currently required amount for the given chemical, minus the amount made available by simulated reactions */
@@ -324,7 +361,7 @@ class NanoFactory
 	}
 
 	/** returns the currently available amount of the given chemical, throwing if it has a non-zero requirement */
-	getAvailableAmount(chemical: Chemical) : number
+	getStrictlyAvailableAmount(chemical: Chemical) : number
 	{
 		let returnValue : number;
 		this.accessChemical(chemical, x => {
@@ -354,14 +391,14 @@ function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reac
 	};
 }
 
-function simulateToConsumeAvailable(quantity: number, chemical: Chemical, reactionList: ReactionList, satResult: SatisfactionSimulationResult)
+function simulateToConsumeAvailable(quantity: number, chemical: Chemical, reactionList: ReactionList)
 	: {fuelGenerated: number, resultingFactory: NanoFactory}
 {
 	const factory = new NanoFactory(reactionList);
 	factory.addAvailable(quantity, chemical);
-	factory.simulateReactionsToMaximizeFuelOutput(satResult);
+	factory.simulateReactionsToMaximizeFuelOutput();
 	return {
-		fuelGenerated: factory.getAvailableAmount(FUEL),
+		fuelGenerated: factory.getStrictlyAvailableAmount(FUEL),
 		resultingFactory: factory,
 	};
 }
@@ -377,12 +414,12 @@ function checkExamples()
 	function checkExample(example: Example)
 	{
 		const reactionList = parseReactionList(example[2]);
-		const part1result = simulateToSatisfyRequirement(1, FUEL, reactionList);
-		assert(part1result.minimumOreRequired === example[0], `part 1 example mismatch: expected = ${example[0]}, result = ${part1result.minimumOreRequired}`);
+		const part1result = simulateToSatisfyRequirement(1, FUEL, reactionList).minimumOreRequired;
+		assert(part1result === example[0], `part 1 example mismatch: expected = ${example[0]}, result = ${part1result}`);
 		if (example[1] !== null)
 		{
-			const part2result = simulateToConsumeAvailable(ONE_TRILLION, ORE, reactionList, part1result);
-			assert(part2result.fuelGenerated === example[1], `part 2 example mismatch: expected = ${example[1]}, result = ${part2result.fuelGenerated}`);
+			const part2result = simulateToConsumeAvailable(ONE_TRILLION, ORE, reactionList).fuelGenerated;
+			assert(part2result === example[1], `part 2 example mismatch: expected = ${example[1]}, result = ${part2result}`);
 		}
 	}
 	
