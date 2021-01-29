@@ -395,41 +395,27 @@ class NanoFactory
 				outputFactor: this.reactionList.byOutputChemical.get(x[0])?.output?.quantity ?? 0
 			}));
 
-		// as long as ORE availability is negative
-		let undidAny: boolean;
+		// go through all chemicals except ORE and FUEL in reverse tier order
 		const undidRecord: Map<Chemical, number> = new Map();
-		while (this.chemicals.get(ORE)!.available < 0)
+		for (let e of [...tierOrderedChemicalEntries].reverse().filter(x => x[0] !== ORE && x[0] !== FUEL)
+			.map(x => ({chemical: x[0], tracker: x[1], reaction: this.reactionList.byOutputChemical.get(x[0])!})))
 		{
-			// reset undidAny to make sure we undo at least one chemical reaction per loop iteration
-			// (otherwise we're not making progress toward our end condition)
-			undidAny = false;
+			// skip any whose availability is less than its output reaction's output factor
+			if (e.tracker.available < e.reaction.output.quantity)
+				continue;
 
-			// go through all chemicals except ORE and FUEL in reverse tier order
-			for (let e of [...tierOrderedChemicalEntries].reverse().filter(x => x[0] !== ORE && x[0] !== FUEL)
-				.map(x => ({chemical: x[0], tracker: x[1], reaction: this.reactionList.byOutputChemical.get(x[0])!})))
-			{
-				// skip any whose availability is less than its output reaction's output factor
-				if (e.tracker.available < e.reaction.output.quantity)
-					continue;
+			// for the rest, calculate how many times we can safely undo the reaction
+			const undoCount = Math.floor(e.tracker.available / e.reaction.output.quantity);
+			if (undoCount < 1)
+				throw new Error(`should be unreachable, we made sure there was enough available to undo at least one, but undoCount = ${undoCount}`);
+			
+			// undo the reaction that many times
+			for (let input of e.reaction.inputs)
+				this.accessChemical(input.chemical, x => x.available += input.quantity * undoCount, input.chemical !== ORE);
+			this.accessChemical(e.reaction.output.chemical, x => x.available -= e.reaction.output.quantity * undoCount);
 
-				// for the rest, calculate how many times we can safely undo the reaction
-				const undoCount = Math.floor(e.tracker.available / e.reaction.output.quantity);
-				if (undoCount < 1)
-					throw new Error(`should be unreachable, we made sure there was enough available to undo at least one, but undoCount = ${undoCount}`);
-				
-				// undo the reaction that many times
-				for (let input of e.reaction.inputs)
-					this.accessChemical(input.chemical, x => x.available += input.quantity * undoCount, input.chemical !== ORE);
-				this.accessChemical(e.reaction.output.chemical, x => x.available -= e.reaction.output.quantity * undoCount);
-
-				// set undidAny flag and save the undo count
-				undidAny = true;
-				undidRecord.set(e.chemical, undoCount);
-			}
-
-			// bail if we didn't undo any - this prevents infinite loop in case of logic error
-			if (!undidAny)
-				throw new Error('unable to find way to undo excess ORE usage');
+			// set undidAny flag and save the undo count
+			undidRecord.set(e.chemical, undoCount);
 		}
 
 		// get summary about final state of all chemicals so far
