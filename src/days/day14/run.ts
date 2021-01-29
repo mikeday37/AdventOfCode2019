@@ -116,6 +116,7 @@ interface ChemicalTracker {
 	required: number;
 	available: number;
 	tier: number | null;
+	trickleReactionCount: number; // during forward simulation, these are the last-minute reaction iterations simulated to prevent running out of required inputs
 }
 
 interface ReactionSequenceEntry {
@@ -135,7 +136,11 @@ class NanoFactory
 	{
 		this.reactionList = reactionList;
 		for (let chemical of [ORE, ...reactionList.byOutputChemical.keys()])
-			this.chemicals.set(chemical, {required: 0, available: 0, tier: null});
+			this.chemicals.set(chemical, {required: 0, available: 0, tier: null, trickleReactionCount: 0});
+
+		const fuelReactionOutputQuantity = this.reactionList.byOutputChemical.get(FUEL)!.output.quantity;
+		if (fuelReactionOutputQuantity !== 1)
+			throw new Error(`output quantity of FUEL reaction is expected to be 1!  actual output quantity of FUEL is: ${fuelReactionOutputQuantity}`);
 	}
 
 	/** adds to the required amount for the given chemical */
@@ -161,7 +166,7 @@ class NanoFactory
 	}
 
 	/** performs an action on the entry for the given chemical */
-	private accessChemical(chemical: Chemical, action: (entry: ChemicalTracker) => void) : void
+	private accessChemical(chemical: Chemical, action: (entry: ChemicalTracker) => void, enforceNonNegativeAvailability: boolean = true) : void
 	{
 		// get the entry
 		const entry = this.chemicals.get(chemical);
@@ -180,12 +185,12 @@ class NanoFactory
 		}
 
 		// fail if either required or available are ever negative
-		if (entry.required < 0 || entry.available < 0)
+		if (entry.required < 0 || (enforceNonNegativeAvailability && entry.available < 0))
 			throw new Error(`simulation for chemical ${chemical} went negative: required = ${entry.required}, available = ${entry.available}`);
 	}
 
 	/** simulates performing the reaction for the given outputChemical, for the given number of iterations */
-	private simulateReaction(outputChemical: Chemical, iterations: number) : void
+	private simulateReaction(outputChemical: Chemical, iterations: number, reverse: boolean = true, strict: boolean = false) : void
 	{
 		if (iterations < 0)
 			throw new Error('cannot simulate a negative number of iterations');
@@ -197,9 +202,30 @@ class NanoFactory
 		if (reaction === undefined)
 			throw new Error(`factory cannot produce chemical: ${outputChemical}`);
 
-		// for each input chemical: add the input quantity times iterations to the requirement
+		// for each input chemical, if going in reverse, add the input quantity times iterations to the requirement
 		for (const input of reaction.inputs)
-			this.accessChemical(input.chemical, x => x.required += input.quantity * iterations);
+			if (reverse)
+				this.accessChemical(input.chemical, x => x.required += input.quantity * iterations);
+			else
+			{
+				// otherwise, first compare required versus avaible, and trickle more of the required if necessary,
+				// to prevent going negative (which would render the simulation invalid)
+				const required = input.quantity * iterations;
+				let trickleCount = 0;
+				if (!strict && input.chemical !== ORE) // can't produce more ORE
+					for (; this.getStrictlyAvailableAmount(input.chemical) < required; trickleCount++)
+						this.simulateReaction(input.chemical, 1, false);
+
+				// then actually take what is required directly from what's available.
+				// (and store the added trickleCount just for diagnostic purposes)
+				this.accessChemical(input.chemical, x =>
+					{
+						x.available -= required;
+						x.trickleReactionCount += trickleCount;
+					},
+					strict || input.chemical !== ORE // allow ORE to go temporarily negative
+				);
+			};
 
 		// add output quantity times iterations to the output chemical's availability
 		this.accessChemical(outputChemical, x => x.available += reaction.output.quantity * iterations);
@@ -283,8 +309,11 @@ class NanoFactory
 	 * runs a simulation based on the available inputs (which must be added prior to call)
 	 * to maximize fuel output.
 	 */
-	simulateReactionsToMaximizeFuelOutput() : void
+	simulateReactionsToMaximizeFuelOutput()
 	{
+		// save initial ore quantity for double check at end
+		const initialOreQuantity = this.getStrictlyAvailableAmount(ORE);
+
 		// determine max depth of input graph
 		let maxDepth = 0;
 		this.walkInputs(FUEL, (_, depth) => maxDepth = Math.max(depth, maxDepth));
@@ -341,15 +370,117 @@ class NanoFactory
 		const idealFuelProduction = Math.floor(productionFactor.getNumber());
 
 		// in tier order, perform all reactions at determined ratio * productionFactor iterations
+		const iterationRecord: Map<Chemical, number> = new Map();
 		for (let e of tierOrderedChemicalEntries)
 		{
 			if (e[0] == ORE) continue;
 			const iterationRational = new Rational();
-			iterationRational.add(productionRatios.get(e[0])!);
-			iterationRational.multiply(productionFactor);
+			iterationRational.add(productionFactor);
+			iterationRational.multiply(productionRatios.get(e[0])!);
+			iterationRational.divide(new Rational(chemInfo.get(e[0])!.reaction.output.quantity));
 			const iterations = Math.floor(iterationRational.getNumber());
-			this.simulateReaction(e[0], iterations);
+			iterationRecord.set(e[0], iterations);
+			this.simulateReaction(e[0], iterations, false);
 		}
+
+		// get summary about state of all chemicals so far (for debugging purposes)
+		const summaryPass1 = tierOrderedChemicalEntries
+			.map(x => ({
+				chem: x[0], 
+				req: x[1].required, 
+				avail: x[1].available, 
+				tier: x[1].tier!, 
+				prodIters: iterationRecord.get(x[0]) ?? 0,
+				trickleIters: this.chemicals.get(x[0])?.trickleReactionCount ?? 0,
+				outputFactor: this.reactionList.byOutputChemical.get(x[0])?.output?.quantity ?? 0
+			}));
+
+		// as long as ORE availability is negative
+		let undidAny: boolean;
+		const undidRecord: Map<Chemical, number> = new Map();
+		while (this.chemicals.get(ORE)!.available < 0)
+		{
+			// reset undidAny to make sure we undo at least one chemical reaction per loop iteration
+			// (otherwise we're not making progress toward our end condition)
+			undidAny = false;
+
+			// go through all chemicals except ORE and FUEL in reverse tier order
+			for (let e of [...tierOrderedChemicalEntries].reverse().filter(x => x[0] !== ORE && x[0] !== FUEL)
+				.map(x => ({chemical: x[0], tracker: x[1], reaction: this.reactionList.byOutputChemical.get(x[0])!})))
+			{
+				// skip any whose availability is less than its output reaction's output factor
+				if (e.tracker.available < e.reaction.output.quantity)
+					continue;
+
+				// for the rest, calculate how many times we can safely undo the reaction
+				const undoCount = Math.floor(e.tracker.available / e.reaction.output.quantity);
+				if (undoCount < 1)
+					throw new Error(`should be unreachable, we made sure there was enough available to undo at least one, but undoCount = ${undoCount}`);
+				
+				// undo the reaction that many times
+				for (let input of e.reaction.inputs)
+					this.accessChemical(input.chemical, x => x.available += input.quantity * undoCount, input.chemical !== ORE);
+				this.accessChemical(e.reaction.output.chemical, x => x.available -= e.reaction.output.quantity * undoCount);
+
+				// set undidAny flag and save the undo count
+				undidAny = true;
+				undidRecord.set(e.chemical, undoCount);
+			}
+
+			// bail if we didn't undo any - this prevents infinite loop in case of logic error
+			if (!undidAny)
+				throw new Error('unable to find way to undo excess ORE usage');
+		}
+
+		// get summary about final state of all chemicals so far
+		const summaryPass2 = tierOrderedChemicalEntries
+			.map(x => ({
+				chem: x[0], 
+				req: x[1].required, 
+				avail: x[1].available, 
+				tier: x[1].tier!, 
+				prodIters: iterationRecord.get(x[0]) ?? 0,
+				trickleIters: this.chemicals.get(x[0])?.trickleReactionCount ?? 0,
+				outputFactor: this.reactionList.byOutputChemical.get(x[0])?.output?.quantity ?? 0,
+				undoCount: undidRecord.get(x[0]) ?? 0
+			}));
+
+		// make sure all chemicals now have zero required and non-negative availability
+		this.verifyAllChemicalsHaveGoodFinalStatus();
+
+		// calculate final reaction sequence
+		const reactionSequence: ReactionSequenceEntry[] = summaryPass2.filter(x => x.chem !== ORE).map(x => ({
+			outputChemical: x.chem,
+			iterations: x.prodIters + x.trickleIters - x.undoCount
+		}));
+
+		// create a new factory and run through the sequence in strict mode
+		const testFactory = new NanoFactory(this.reactionList);
+		testFactory.addAvailable(initialOreQuantity, ORE);
+		for (let s of reactionSequence)
+			testFactory.simulateReaction(s.outputChemical, s.iterations, false, true) // forward & strict
+		
+		// verify the test factory as the same final ORE and FUEL amounts
+		for (let chemical of [ORE, FUEL])
+		{
+			const originalFinalAmount = this.getStrictlyAvailableAmount(chemical);
+			const testFinalAmount = testFactory.getStrictlyAvailableAmount(chemical);
+			if (originalFinalAmount != testFinalAmount)
+				throw new Error(`reaction sequence test mismatch on chemical ${chemical}: originalFinalAmount = ${originalFinalAmount}, testFinalAmount = ${testFinalAmount}`);
+		}
+
+		// re-verify all test factory chemical amounts are also zero required and non-negative availability
+		testFactory.verifyAllChemicalsHaveGoodFinalStatus();
+
+		return {summaryPass1, summaryPass2, reactionSequence};
+	}
+
+	verifyAllChemicalsHaveGoodFinalStatus() : void
+	{
+		// make sure all chemicals now have zero required and non-negative availability
+		for (const e of this.chemicals.entries())
+			if (e[1].required !== 0 || e[1].available < 0)
+				throw new Error(`chemical ${e[0]} has invalid final state: required = ${e[1].required}, available = ${e[1].available}`);
 	}
 
 	/** returns the currently required amount for the given chemical, minus the amount made available by simulated reactions */
