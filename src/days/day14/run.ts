@@ -30,6 +30,11 @@ Part 2:
 
 */
 
+type Chemical = string;
+const ORE: Chemical = 'ORE';
+const FUEL: Chemical = 'FUEL';
+const ONE_TRILLION = 1000000000000;
+
 (function(){
 	manager.day(14, 'Space Stoichiometry',
 	[
@@ -41,19 +46,19 @@ Part 2:
 
 		const reactionList = api.time('read and parse', () => parseReactionList(api.readInput()));
 
-		let factory: NanoFactory;
+		let part1SimResult: SatisfactionSimulationResult;
 		api.doPart(1, () => {
-			const result = simulateToSatisfyRequirement(1, FUEL, reactionList);
-			factory = result.resultingFactory;
-			return result.minimumOreRequired;
+			part1SimResult = simulateToSatisfyRequirement(1, FUEL, reactionList);
+			return part1SimResult.minimumOreRequired;
+		});
+
+		api.doPart(2, () => {
+			const part2SimResult = simulateToConsumeAvailable(ONE_TRILLION, ORE, reactionList, part1SimResult);
+			return part2SimResult.fuelGenerated;
 		});
 	});
 })();
 
-type Chemical = string;
-
-const ORE: Chemical = 'ORE';
-const FUEL: Chemical = 'FUEL';
 
 interface ChemicalQuantity {
 	quantity: number,
@@ -128,6 +133,7 @@ class NanoFactory
 {
 	private reactionList: ReactionList;
 	private chemicals: Map<Chemical, RequiredAvailable> = new Map();
+	private totalReactionCount: number = 0;
 
 	/** creates a NanoFactory for the given ReactionList */
 	constructor(reactionList: ReactionList)
@@ -145,11 +151,22 @@ class NanoFactory
 		if (quantity < 1)
 			return;
 
-		this.manipulate(chemical, x => x.required += quantity);
+		this.accessChemical(chemical, x => x.required += quantity);
 	}
 
-	/** manipulates the entry for the given chemical */
-	private manipulate(chemical: Chemical, action: (entry: RequiredAvailable) => void) : void
+	/** adds to the available amount for the given chemical */
+	addAvailable(quantity: number, chemical: Chemical) : void
+	{
+		if (quantity < 0)
+			throw new Error("cannot add negative available");
+		if (quantity < 1)
+			return;
+
+		this.accessChemical(chemical, x => x.available += quantity);
+	}
+
+	/** performs an action on the entry for the given chemical */
+	private accessChemical(chemical: Chemical, action: (entry: RequiredAvailable) => void) : void
 	{
 		// get the entry
 		const entry = this.chemicals.get(chemical);
@@ -187,10 +204,13 @@ class NanoFactory
 
 		// for each input chemical: add the input quantity times iterations to the requirement
 		for (const input of reaction.inputs)
-			this.manipulate(input.chemical, x => x.required += input.quantity * iterations);
+			this.accessChemical(input.chemical, x => x.required += input.quantity * iterations);
 
 		// add output quantity times iterations to the output chemical's availability
-		this.manipulate(outputChemical, x => x.available += reaction.output.quantity * iterations);
+		this.accessChemical(outputChemical, x => x.available += reaction.output.quantity * iterations);
+
+		// increase total reaction count
+		this.totalReactionCount += iterations;
 	}
 
 	/**
@@ -218,6 +238,8 @@ class NanoFactory
 				throw new Error('attempted to simulate negative iterations of reaction in main simulation loop');
 			reactionCount += iterations;
 			factory.simulateReaction(outputChemical, iterations);
+
+			// add this reaction in reverse order, since we're effectively simulating backwards from the target
 			reactionSequence.unshift({outputChemical, iterations});
 		}
 
@@ -241,6 +263,51 @@ class NanoFactory
 		return reactionSequence;
 	}
 
+	/**
+	 * uses a pre-calculated reaction sequence to simulate consumption of the given input chemical,
+	 * for maximum generation of the given ultimate chemical.
+	 */
+	simulateReactionsToMaximizeFuelOutput(satResult: SatisfactionSimulationResult) : void
+	{
+		// determine the max number of times we can repeat the entire simulated reaction sequence
+		const sequenceFactor = Math.floor(this.getAvailableAmount(ORE) / satResult.minimumOreRequired);
+
+		// simulate entire sequence, multiplied by that factor
+		for (const entry of satResult.reactionSequence)
+			this.simulateReaction(entry.outputChemical, entry.iterations * sequenceFactor);
+
+		// repeatedly simluate additional possible reactions until there can't be any more
+		let lastTotalReactionCount = this.totalReactionCount;
+		while (true)
+		{
+			// without using more ORE, recursively maximize fuel production from what remains, using the same reaction sequence as a balancing guide
+			this.maximizeProductionWithoutConsumingFurtherOre(FUEL, satResult.reactionSequence);
+			if (this.totalReactionCount === lastTotalReactionCount)
+				break;
+			lastTotalReactionCount = this.totalReactionCount;
+		}
+
+		let z = -1;
+	}
+
+	maximizeProductionWithoutConsumingFurtherOre(chemical: Chemical, reactionSequence: ReactionSequenceEntry[])
+	{
+		// get the reaction for this chemical
+		const reaction = this.reactionList.byOutputChemical.get(chemical)!;
+
+		// bail if it requires ORE
+		if (reaction.inputs.filter(x => x.chemical === ORE).length > 0)
+			return;
+
+		// maximize all the inputs
+		for (const inputChemical of reaction.inputs.map(x => x.chemical))
+			this.maximizeProductionWithoutConsumingFurtherOre(inputChemical, reactionSequence);
+
+		// run the reaction as many times as we can
+		const availableIterations = reaction.inputs.map(x => Math.floor(this.getAvailableAmount(x.chemical) / x.quantity)).reduce((a,b) => Math.min(a,b));
+		this.simulateReaction(chemical, availableIterations);
+	}
+
 	/** returns true if and only if there is eactly one chemical with a positive requirement, and that chemical is the given */
 	chemicalIsSoleRequirement(requiredChemical: Chemical) : boolean
 	{
@@ -252,12 +319,30 @@ class NanoFactory
 	getRequiredAmount(chemical: Chemical) : number
 	{
 		let returnValue : number;
-		this.manipulate(chemical, x => returnValue = x.required - x.available);
+		this.accessChemical(chemical, x => returnValue = x.required - x.available);
+		return returnValue!;
+	}
+
+	/** returns the currently available amount of the given chemical, throwing if it has a non-zero requirement */
+	getAvailableAmount(chemical: Chemical) : number
+	{
+		let returnValue : number;
+		this.accessChemical(chemical, x => {
+			if (x.required !== 0)
+				throw new Error(`getAvailableAmount is only intended to be used when required is zero.  chemical = ${chemical}, required = ${x.required}, available = ${x.available}`);
+			returnValue = x.available;
+		});
 		return returnValue!;
 	}
 }
 
-function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reactionList: ReactionList) : {minimumOreRequired: number, resultingFactory: NanoFactory, reactionSequence: ReactionSequenceEntry[]}
+interface SatisfactionSimulationResult {
+	minimumOreRequired: number,
+	resultingFactory: NanoFactory,
+	reactionSequence: ReactionSequenceEntry[]
+}
+
+function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reactionList: ReactionList) : SatisfactionSimulationResult
 {
 	const factory = new NanoFactory(reactionList);
 	factory.addRequirement(quantity, chemical);
@@ -266,6 +351,18 @@ function simulateToSatisfyRequirement(quantity: number, chemical: Chemical, reac
 		minimumOreRequired: factory.getRequiredAmount(ORE),
 		resultingFactory: factory,
 		reactionSequence
+	};
+}
+
+function simulateToConsumeAvailable(quantity: number, chemical: Chemical, reactionList: ReactionList, satResult: SatisfactionSimulationResult)
+	: {fuelGenerated: number, resultingFactory: NanoFactory}
+{
+	const factory = new NanoFactory(reactionList);
+	factory.addAvailable(quantity, chemical);
+	factory.simulateReactionsToMaximizeFuelOutput(satResult);
+	return {
+		fuelGenerated: factory.getAvailableAmount(FUEL),
+		resultingFactory: factory,
 	};
 }
 
@@ -280,9 +377,13 @@ function checkExamples()
 	function checkExample(example: Example)
 	{
 		const reactionList = parseReactionList(example[2]);
-		const result = simulateToSatisfyRequirement(1, FUEL, reactionList);
-		assert(result.minimumOreRequired === example[0], `part 1 example mismatch: expected = ${example[0]}, result = ${result}`);
-
+		const part1result = simulateToSatisfyRequirement(1, FUEL, reactionList);
+		assert(part1result.minimumOreRequired === example[0], `part 1 example mismatch: expected = ${example[0]}, result = ${part1result.minimumOreRequired}`);
+		if (example[1] !== null)
+		{
+			const part2result = simulateToConsumeAvailable(ONE_TRILLION, ORE, reactionList, part1result);
+			assert(part2result.fuelGenerated === example[1], `part 2 example mismatch: expected = ${example[1]}, result = ${part2result.fuelGenerated}`);
+		}
 	}
 	
 	const examples: Example[] = [
