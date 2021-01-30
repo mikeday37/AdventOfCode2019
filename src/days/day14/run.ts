@@ -1,4 +1,4 @@
-import { assert, exception } from 'console';
+import { assert } from 'console';
 import * as manager from '../../lib/dayManager.js';
 import { Rational } from '../../lib/rational.js';
 
