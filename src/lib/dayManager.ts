@@ -87,7 +87,9 @@ function createDayTracker()
 
 		runAsync: async (day: DayTrackerEntry) => await runDayAsync(day),
 
-		runFast: false
+		runFast: false,
+
+		inputOverridePath: null as string | null
 	};
 
 	return tracker;
@@ -106,19 +108,25 @@ function makeHelper(day: DayTrackerEntry)
 
 	api.readInput = () =>
 	{
-		const curPath = cwd();
-		const pathParts = common.splitPath(curPath);
-		const daySubDirRegex = /day\d+/;
-		const srcIndex = pathParts.length - 3;
-		const expected =
-			pathParts[srcIndex] === 'ts-out'
-			&& pathParts[srcIndex + 1] === 'days'
-			&& daySubDirRegex.test(pathParts[srcIndex + 2]);
-		if (!expected)
-			throw new Error(`attempting to read input from unexpected path: ${curPath}`);
-		pathParts[srcIndex] = 'src';
-		pathParts.push('input.txt');
-		const inputPath = path.resolve(...pathParts);
+		let inputPath;
+		if (dayTracker.inputOverridePath !== null)
+			inputPath = dayTracker.inputOverridePath;
+		else
+		{
+			const curPath = cwd();
+			const pathParts = common.splitPath(curPath);
+			const daySubDirRegex = /day\d+/;
+			const srcIndex = pathParts.length - 3;
+			const expected =
+				pathParts[srcIndex] === 'ts-out'
+				&& pathParts[srcIndex + 1] === 'days'
+				&& daySubDirRegex.test(pathParts[srcIndex + 2]);
+			if (!expected)
+				throw new Error(`attempting to read input from unexpected path: ${curPath}`);
+			pathParts[srcIndex] = 'src';
+			pathParts.push('input.txt');
+			inputPath = path.resolve(...pathParts);
+		}
 		return readFileSync(inputPath, 'utf-8');
 	}
 	
@@ -162,7 +170,7 @@ function makeHelper(day: DayTrackerEntry)
 			throw Error(`invalid part number: ${part}`);
 		day.answers[part-1] = result;
 		let valid = null, validMsg = '';
-		if (day.expectedAnswers[part-1] !== null)
+		if (day.expectedAnswers[part-1] !== null && !dayTracker.inputOverridePath)
 		{
 			valid = result == day.expectedAnswers[part-1]; // intentional ==
 			validMsg = `   -- ${valid ? 'CORRECT' : '!! WRONG !!'} --`;

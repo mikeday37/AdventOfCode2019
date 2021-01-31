@@ -119,6 +119,10 @@ async function runAsRequested()
 		tracker.days.get(dayNum).dir = dir;
 	}
 	
+	// if doing single day, allow and implement input override
+	if (runSingle && process.argv.length >= 4)
+		tracker.inputOverridePath = path.normalize(path.resolve(process.argv[3]));
+
 	// now actually run each day
 	for (let day of daysToRun.map(x => tracker.days.get(x)))
 	{

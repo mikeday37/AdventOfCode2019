@@ -18,13 +18,14 @@ import Graph from 'node-dijkstra';
 		runTests();
 
 		let repairController: RepairController;
-		api.doPart(1, () => {
+		api.time('discover ship', () => {
 			repairController = new RepairController(intcode, program);
-			return repairController.getPathToOxygenSystem().length;
+			repairController.discoverShip();
 		});
 
 		repairController!.logShip();
 
+		api.doPart(1, () => repairController!.getPathToOxygenSystem().length);
 		api.doPart(2, () => repairController!.getMinutesToOxygenFill());
 	});
 }());
