@@ -113,7 +113,10 @@ function initializeIntcodeMachine(ops: Map<number, Operation>, initialMemory: nu
 		HALTCODE_WAITING_FOR_INPUT: -71
 	} as MachineState;
     state.step = () => iterateIntecodeMachine(state);
-    state.runToHalt = () => {while (state.haltCode === 0) state.step();}
+    state.runToHalt = () => {
+        while (state.haltCode === 0 || (state.haltCode === state.HALTCODE_WAITING_FOR_INPUT && io.hasInput()))
+            state.step();
+    }
 	return state;
 }
 
