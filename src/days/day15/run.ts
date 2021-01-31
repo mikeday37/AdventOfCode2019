@@ -23,8 +23,6 @@ import Graph from 'node-dijkstra';
 			return repairController.getPathToOxygenSystem().length;
 		});
 
-		api.time('finish ship discovery', () => repairController!.finishShipDiscovery!());
-
 		repairController!.logShip();
 
 		api.doPart(2, () => repairController!.getMinutesToOxygenFill());
@@ -85,7 +83,7 @@ class RepairController {
 		this.program = [...program];
 	}
 
-	discoverOxygenSystem() : void
+	discoverShip() : void
 	{
 		// only discover if we haven't already
 		if (!this.shipGrid.isEmpty())
@@ -124,7 +122,7 @@ class RepairController {
 		this.shipGraph.set(grid.pointToKey(droidlocation), new Map());
 
 		// helper function to explore from current location in a given direction
-		const explore: (d: Direction) => Status = d =>
+		const explore: (d: Direction) => void = d =>
 		{
 			// calculate expected destination if we actually move
 			const offset = directionToOffset.get(d);
@@ -205,13 +203,10 @@ class RepairController {
 					}
 				}
 			}
-
-			// return the status
-			return status;
 		}
 
-		// expose unknown locations until there are none left or we find the oxygen system
-		const iterateSearch: () => void = () =>
+		// expose unknown locations until there are none left
+		while (adjacentUnknowns.length > 0)
 		{
 			// pop an adjacentUnknown to send the robot to
 			const target = adjacentUnknowns.pop()!;
@@ -236,32 +231,18 @@ class RepairController {
 				const nextOffset = {x: nextLocation.x - droidlocation.x, y: nextLocation.y - droidlocation.y};
 				const nextOffsetKey = grid.pointToKey(nextOffset);
 				const nextDirection = offsetToDirection.get(nextOffsetKey)!;
-				lastStatus = explore(nextDirection);
+				explore(nextDirection);
 			}			
 		}
-		let lastStatus = null;
-		while (!this.oxygenSystemLocation && adjacentUnknowns.length > 0)
-			iterateSearch();
 
-		// make sure the loop ended with the discovery of the oxygen system
-		if (lastStatus !== Status.FoundOxygenSystem)
-			throw new Error(`unexpected final discovery status: ${lastStatus}`);
+		// make sure the oxygenSystemLocation is now known
 		if (this.oxygenSystemLocation === null)
 			throw new Error('oxygenSystemLocation not set!');
-
-		// save a continuation function for completing the ship discovery (needed for part 2)
-		this.finishShipDiscovery = () =>
-		{
-			while (adjacentUnknowns.length > 0)
-				iterateSearch();
-		}
 	}
-
-	finishShipDiscovery: (() => void) | undefined;
 
 	getPathToOxygenSystem() : grid.Point[]
 	{
-		this.discoverOxygenSystem();
+		this.discoverShip();
 
 		if (this.oxygenSystemLocation === null)
 			throw new Error('oxygen system not discovered!');
@@ -300,8 +281,8 @@ class RepairController {
 
 	getMinutesToOxygenFill() : number
 	{
-		this.finishShipDiscovery!();
-		
+		this.discoverShip();
+
 		const visited: Set<grid.PointKey> = new Set();
 		let frontier: grid.PointKey[] = []
 
