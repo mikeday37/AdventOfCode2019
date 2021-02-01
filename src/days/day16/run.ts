@@ -151,7 +151,7 @@ function runTests()
 	if (part2testNum !== 3)
 		throw new Error(`unexpected final test num: ${part2testNum}`);
 	if (allPassed)
-		console.log(`all ${part1testNum} part 2 tests passed.`);
+		console.log(`all ${part2testNum} part 2 tests passed.`);
 
 	console.log('');	
 }
