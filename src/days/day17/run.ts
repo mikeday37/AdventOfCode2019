@@ -247,7 +247,7 @@ function extractPattern(inputPath: string[], name: string, maxAllowedPatternLeng
 	for (let replaceIndex of foundIndices)
 		outputPath.splice(replaceIndex, pattern.length, name);
 
-	// we're complete if we're doing greedy and all of the output elements are pattern names and the output path, joined with commans, has length <= 20
+	// we're complete if we're doing greedy and all of the output elements are pattern names and the output path, joined with commas, has length <= 20
 	let complete = false;
 	if (greedy)
 	{
