@@ -251,7 +251,7 @@ function extractPattern(inputPath: string[], name: string, maxAllowedPatternLeng
 	let complete = false;
 	if (greedy)
 	{
-		complete = outputPath.join(',').length < 20;
+		complete = outputPath.join(',').length <= 20;
 		if (complete)
 			for (let e of outputPath)
 				if (!isPatternName(e))
