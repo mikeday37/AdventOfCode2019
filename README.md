@@ -60,7 +60,7 @@ as in:
 ```
   node index.js 13
 ```
-... to run my lucky first TypeScript solution.  :)
+... to run my lucky first TypeScript solution.  :-)
 
 When run in this way, each part is run multiple times to enable better benchmarking.  The benchmarking runs a maximum of 100 times per part, or until 1 second has elapsed, whichever is shorter.  I try to keep my solutions running in less than one second, though there are a couple of exceptions so far.
 
