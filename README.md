@@ -2,7 +2,7 @@
 
 This repo contains my solutions for: [Advent of Code 2019](https://adventofcode.com/2019)
 
-Well into a long career of programming, I started playing Advent of Code (AoC) in [December 2020](https://adventofcode.com/2020), and loved the puzzles so much that I figured it a great way to reinforce learning more.  So I went back to the 2019 puzzles to learn more JavaScript and start learning TypeScript.  When I'm done with 2019, I plan to go further back to learn additional languages.
+I started playing Advent of Code (AoC) in [December 2020](https://adventofcode.com/2020), and loved the puzzles so much that I figured it a great way to reinforce learning more.  So I went back to the 2019 puzzles to learn more JavaScript and start learning TypeScript.  When I'm done with 2019, I plan to go further back to reinforce learning additional languages.
 
 My primary goals with this repo are to:
 * Solve days 1 through 12 in plain JavaScript.  (DONE)
