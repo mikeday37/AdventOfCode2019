@@ -34,12 +34,12 @@ All remaining steps should be performed in a command prompt.
 ```
 Remaining steps and all other example commands assume you're running in that folder.
 
-3. Install dependencies, including developer support:
+4. Install dependencies, including developer support:
 ```
   npm install --save-dev
 ```
 
-4. Build the project:
+5. Build the project:
 ```
   tsc -b src
 ```
