@@ -2,8 +2,11 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "typescript",
-			"tsconfig": "src/tsconfig.json",
+			"type": "shell",
+			"windows": {
+				"command": "cmd",
+				"args": ["/c", "tsc", "-b", "src"]
+			},
 			"problemMatcher": [
 				"$tsc"
 			],
