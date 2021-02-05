@@ -10,16 +10,16 @@ My primary goals with this repo are to:
 
 This repo should be easy to install, run, and experiment with for anyone running Windows 10 as I do.  Since it uses all open source tech, it should also be straightforward on Linux/Mac, though I haven't tested that.
 
-I went to some lengths to make the development experience quick and easy in VS Code.  I learn a ton from examples, so I want to provide this as a useful example for others who would like to experiment in VS Code with node.js, JavaScript, and TypeScript.  Also, part of the fun of AoC is learning from other players, trying your inputs with their solutions, or trying your solutions with their inputs.  All my inputs are provided here, and command line support make it easy to run any solution with alternate input.
+I went to some lengths to make the development experience quick and easy in VS Code.  I learn a ton from examples, so I want to provide this as a useful example for others who would like to experiment in VS Code with node.js, JavaScript, and TypeScript.  Also, part of the fun of AoC is learning from other players, trying your inputs with their solutions, or trying your solutions with their inputs.  All my inputs are provided here, and command line support makes it easy to run any solution with alternate input.
 
 
 ## Install
 
 1. Install the pre-requisites from their official websites: 
-  * [git](https://git-scm.com/downloads)
-  * [node.js](https://nodejs.org/)
   * [VS Code](https://code.visualstudio.com/Download)
-  
+  * [node.js](https://nodejs.org/)
+  * [git](https://git-scm.com/downloads)
+
 All remaining steps should be performed in a command prompt.
 
 2. Install [TypeScript](https://www.typescriptlang.org/) as a global npm module:
